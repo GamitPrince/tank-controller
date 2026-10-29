@@ -1,0 +1,8 @@
+# Store text files with LF line endings and check them out with LF on every system.
+# Without this, Windows checkouts get CRLF and shell scripts fail with "\r: command not found".
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf

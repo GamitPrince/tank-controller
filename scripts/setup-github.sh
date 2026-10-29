@@ -61,7 +61,9 @@ gh variable set INTERFACE_REVIEWERS --repo "$REPO" --body "$REVIEWERS"
 
 step "Rulesets (create, or update if the name already exists)"
 for file in "$HERE"/.github/rulesets/*.json; do
-  name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["name"])' "$file")"
+  # The first "name" line in each ruleset file is the ruleset name (no Python needed).
+  name="$(sed -n 's/^[[:space:]]*"name": *"\([^"]*\)".*/\1/p' "$file" | head -n 1)"
+  if [ -z "$name" ]; then echo "ERROR: no name found in $file" >&2; exit 1; fi
   id="$(gh api "repos/$REPO/rulesets" --jq ".[] | select(.name==\"$name\") | .id")"
   if [ -n "$id" ]; then
     gh api -X PUT "repos/$REPO/rulesets/$id" --input "$file" >/dev/null && echo "updated $name"

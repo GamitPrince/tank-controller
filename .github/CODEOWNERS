@@ -24,7 +24,7 @@
 /interfaces/            @GamitPrince @ArkinGamit @SHINE-18
 
 # CI, repository policy and scripts: stops a feature pull request from quietly
-# weakening a check or the 80% coverage gate. GamitPrince's changes here are approved
-# by ArkinGamit, and the other way round.
+# weakening a check or the 80% coverage gate. Any one of the three developers who is
+# not the author can approve.
 /.github/               @GamitPrince @ArkinGamit @SHINE-18
 /scripts/               @GamitPrince @ArkinGamit @SHINE-18
