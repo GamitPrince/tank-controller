@@ -1,0 +1,67 @@
+name: Story card
+description: One unit of work. No story card, no work.
+title: "S-XXX: "
+labels: ["story"]
+body:
+  - type: input
+    id: story_id
+    attributes:
+      label: Story ID
+      description: Must match the start of the title and the branch name, for example S-019.
+      placeholder: S-019
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: What is needed and why.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable statements, one per line. Values still open are marked [Confirm].
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [firmware, gateway, dashboard, simulator, hardware, interfaces, docs]
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Project phase
+      description: Phase 1 is read-only monitoring of level and temperature only.
+      options: ["1 - Sense, transmit, see", "2 - Control", "3 - Predictive heating and energy", "4 - Fleet"]
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (MoSCoW)
+      options: [must, should, could]
+    validations:
+      required: true
+  - type: input
+    id: points
+    attributes:
+      label: Story points (Fibonacci)
+      placeholder: "3"
+  - type: input
+    id: rsd
+    attributes:
+      label: RSD references
+      placeholder: FR-LVL-01, NFR-02
+  - type: dropdown
+    id: safety
+    attributes:
+      label: Touches a safety function or interfaces/?
+      description: Safety needs the EE's approval and a recorded test. interfaces/ needs all three developers.
+      options: ["No", "Safety function (add the safety label)", "interfaces/ (all three developers review)", "Both"]
+    validations:
+      required: true

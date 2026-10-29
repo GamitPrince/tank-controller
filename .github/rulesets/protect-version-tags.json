@@ -1,0 +1,22 @@
+{
+  "name": "protect-version-tags",
+  "target": "tag",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/tags/fw-v*",
+        "refs/tags/gw-v*",
+        "refs/tags/dash-v*",
+        "refs/tags/sys-v*"
+      ],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "update" }
+  ]
+}

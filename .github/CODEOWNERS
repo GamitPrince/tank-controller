@@ -1,0 +1,30 @@
+# Who must approve changes to which paths (SOP-SDLC-001, GitHub Workflow Guide section 3).
+#
+# People:
+#   @GamitPrince       repository owner, project manager, firmware developer, gateway developer
+#   @ArkinGamit        dashboard developer
+#   @SHINE-18          dashboard developer
+#   @riyangamit-del    electrical engineer (EE)
+# Every person listed must be a collaborator with write access, or the rule is ignored.
+#
+# The last matching pattern wins, and the ruleset requires code-owner approval.
+# An author cannot approve their own pull request, so every path below has at least
+# two owners, or an owner who is not the usual author. General folders (firmware/,
+# gateway/, dashboard/ ...) are not listed: they rely on the ruleset's rule of one
+# independent approval from anyone with write access.
+
+# Safety functions: only the EE can approve (Workflow Guide rule 6). Because the EE
+# cannot approve their own pull request, a second owner must be added here before the
+# EE ever edits these folders (for example a second electrical engineer).
+/firmware/src/safety/   @riyangamit-del
+/docs/safety/           @riyangamit-del
+
+# Register map and API contract: any one of these satisfies this rule, and the
+# "interfaces-review" check then requires all three people (the author counts as one).
+/interfaces/            @GamitPrince @ArkinGamit @SHINE-18
+
+# CI, repository policy and scripts: stops a feature pull request from quietly
+# weakening a check or the 80% coverage gate. GamitPrince's changes here are approved
+# by ArkinGamit, and the other way round.
+/.github/               @GamitPrince @ArkinGamit @SHINE-18
+/scripts/               @GamitPrince @ArkinGamit @SHINE-18

@@ -1,0 +1,69 @@
+name: Interfaces review
+
+# Rule: a change to interfaces/ needs review from ALL THREE developers.
+# CODEOWNERS can only require ONE of several owners, so this workflow checks
+# the rest and reports the commit status "interfaces-review", which the ruleset
+# requires. The author counts as having reviewed their own change.
+#
+# Needs the repository variable INTERFACE_REVIEWERS = "fwdev,gwdev,dashdev"
+# (Settings > Secrets and variables > Actions > Variables). scripts/setup-github.sh sets it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [develop, main]
+  pull_request_review:
+    types: [submitted, dismissed, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  evaluate-interfaces-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      INTERFACE_REVIEWERS: ${{ vars.INTERFACE_REVIEWERS }}
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            if (!['develop', 'main'].includes(pr.base.ref)) return;
+
+            const report = (state, description) => github.rest.repos.createCommitStatus({
+              owner, repo, sha: pr.head.sha, state,
+              context: 'interfaces-review', description: description.slice(0, 140),
+            });
+
+            const files = await github.paginate(github.rest.pulls.listFiles,
+              { owner, repo, pull_number: pr.number, per_page: 100 });
+            const touches = files.some(f => f.filename.startsWith('interfaces/') ||
+              (f.previous_filename || '').startsWith('interfaces/'));
+            if (!touches) return report('success', 'interfaces/ not changed');
+
+            const required = (process.env.INTERFACE_REVIEWERS || '')
+              .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (required.length !== 3) {
+              return report('failure', 'Set repository variable INTERFACE_REVIEWERS to the three developers');
+            }
+
+            // Latest meaningful review per person.
+            const reviews = await github.paginate(github.rest.pulls.listReviews,
+              { owner, repo, pull_number: pr.number, per_page: 100 });
+            const latest = new Map();
+            for (const r of reviews) {
+              if (!['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(r.state)) continue;
+              latest.set(r.user.login.toLowerCase(), r);
+            }
+            const author = pr.user.login.toLowerCase();
+            const missing = required.filter(u => u !== author && !(
+              latest.get(u)?.state === 'APPROVED' && latest.get(u)?.commit_id === pr.head.sha));
+
+            if (missing.length) {
+              return report('failure', `interfaces/ changed: still needs approval from ${missing.join(', ')}`);
+            }
+            return report('success', 'All three developers have reviewed interfaces/');

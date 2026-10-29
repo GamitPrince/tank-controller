@@ -1,0 +1,54 @@
+name: Bug report
+description: Something is broken. Any defect in a safety function is Critical.
+title: "S-XXX: "
+labels: ["bug"]
+body:
+  - type: input
+    id: story_id
+    attributes:
+      label: Story ID
+      description: Bugs are tracked like stories, for example S-031.
+      placeholder: S-031
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Critical = crash, data loss or safety breach (fix in 4 hours). High = major feature broken, no workaround (1 day). Medium = workaround exists (this sprint). Low = cosmetic (next sprint).
+      options: [Critical, High, Medium, Low]
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [firmware, gateway, dashboard, simulator, hardware, interfaces, docs]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: dropdown
+    id: safety
+    attributes:
+      label: Touches a safety function?
+      description: If yes, add the safety label. It is automatically Critical and stops the release.
+      options: ["No", "Yes"]
+    validations:
+      required: true

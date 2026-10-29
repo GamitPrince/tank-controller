@@ -1,0 +1,38 @@
+# Secrets: use GitHub Secrets and local .env files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+id_rsa
+id_ed25519
+
+# Build output (release binaries go on GitHub Releases)
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.a
+build/
+dist/
+out/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+coverage.xml
+.coverage
+htmlcov/
+
+# Vendor SDKs: pin the version in the README or a manifest and fetch locally
+sdk/
+zephyr/
+modules/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
