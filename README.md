@@ -19,3 +19,5 @@ Start here: [CONTRIBUTING.md](CONTRIBUTING.md). Repository setup: [docs/github-s
 Governing documents: SDLC Playbook (SOP-SDLC-001) and the GitHub Workflow Guide.
 
 Tool versions (SDK, compiler, runtimes) are pinned here once the tech-stack ADRs (story P1-00) are accepted.
+
+<!-- Verified initial setup and CI workflow -->
