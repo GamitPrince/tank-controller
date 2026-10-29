@@ -4,7 +4,7 @@
 #   @GamitPrince       repository owner, project manager, firmware developer, gateway developer
 #   @ArkinGamit        dashboard developer
 #   @SHINE-18          dashboard developer
-#   @riyangamit-del    electrical engineer (EE)
+#   @gamitriyan-del    electrical engineer (EE)
 # Every person listed must be a collaborator with write access, or the rule is ignored.
 #
 # The last matching pattern wins, and the ruleset requires code-owner approval.
@@ -16,8 +16,8 @@
 # Safety functions: only the EE can approve (Workflow Guide rule 6). Because the EE
 # cannot approve their own pull request, a second owner must be added here before the
 # EE ever edits these folders (for example a second electrical engineer).
-/firmware/src/safety/   @riyangamit-del
-/docs/safety/           @riyangamit-del
+/firmware/src/safety/   @gamitriyan-del
+/docs/safety/           @gamitriyan-del
 
 # Register map and API contract: any one of these satisfies this rule, and the
 # "interfaces-review" check then requires all three people (the author counts as one).

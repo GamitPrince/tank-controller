@@ -9,7 +9,7 @@ People used below:
 | `GamitPrince` | Repository owner, project manager, firmware developer, gateway developer |
 | `ArkinGamit` | Dashboard developer |
 | `SHINE-18` | Dashboard developer |
-| `riyangamit-del` | Electrical engineer (EE) |
+| `gamitriyan-del` | Electrical engineer (EE) |
 
 "All three developers" means these three people: GamitPrince, ArkinGamit and SHINE-18. Because GamitPrince writes the firmware and gateway code, his pull requests are reviewed by ArkinGamit or SHINE-18, and theirs by anyone else with write access.
 
@@ -40,7 +40,7 @@ git push origin main:develop
 
 ## 4. Invite everyone (PM)
 
-Settings, Collaborators, Add people: `ArkinGamit`, `SHINE-18`, `riyangamit-del`. On a personal account every collaborator has write access and cannot change settings. Each person must accept the email invitation, or CODEOWNERS will ignore them.
+Settings, Collaborators, Add people: `ArkinGamit`, `SHINE-18`, `gamitriyan-del`. On a personal account every collaborator has write access and cannot change settings. Each person must accept the email invitation, or CODEOWNERS will ignore them.
 
 ## 5. Apply the settings (PM, GitHub CLI logged in as the owner)
 
@@ -125,7 +125,7 @@ The bypass list is empty, so nobody can merge around the rules by accident. If s
 
 - A **personal account has no teams**, so CODEOWNERS lists individual usernames and the "all three developers" rule needs the `interfaces-review` check. A free GitHub Organization would allow teams and shared ownership, at no cost.
 - **GamitPrince is the only firmware and gateway developer**, so every firmware and gateway pull request is reviewed by ArkinGamit or SHINE-18. Pick the reviewer for the code, and for `firmware/src/safety/` the EE reviews as well. This keeps the rule "nobody approves their own PR", but a reviewer from the dashboard side may know less about firmware.
-- **Nobody else can approve for the EE.** `riyangamit-del` is the only owner of `firmware/src/safety/` and `docs/safety/`. If the EE writes a change in those folders, no one else can approve it, so add a second owner first.
+- **Nobody else can approve for the EE.** `gamitriyan-del` is the only owner of `firmware/src/safety/` and `docs/safety/`. If the EE writes a change in those folders, no one else can approve it, so add a second owner first.
 - The branch-name rule applies to pull requests, not to pushing an oddly named branch.
 - A squash merge of a `release/*` branch into `main` leaves `main` and `develop` with different history. The Guide's "merge back to `develop`" step may show conflicts; if it does, resolve them in the merge-back PR.
 - The EE cannot approve a pull request they authored in `firmware/src/safety/`; another EE or the PM would need to be added as an owner.
