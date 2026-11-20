@@ -20,10 +20,10 @@
 
 # Register map and API contract: any code owner listed below who is not the author
 # can approve, satisfying both this rule and the "interfaces-review" check.
-/interfaces/            @GamitPrince @prinz-assists
+/interfaces/            @GamitPrince @prinz-assists @gamitriyan-del
 
 # CI, repository policy and scripts: stops a feature pull request from quietly
 # weakening a check or the 80% coverage gate. Any code owner who is not the
 # author can approve.
-/.github/               @GamitPrince @prinz-assists
-/scripts/               @GamitPrince @prinz-assists
+/.github/               @GamitPrince @prinz-assists @gamitriyan-del
+/scripts/               @GamitPrince @prinz-assists @gamitriyan-del
