@@ -40,6 +40,8 @@ All at the pilot site. Channel 16 is spare.
 | 15 | Dry run alarm | Alarm | Normally closed | 200 ms |
 | 16 | *(spare)* | — | — | — |
 
+Channels 1 and 2 are read by **P1-05**, channels 10 to 15 by **P1-09**, and channels 3 to 9 by **P1-27**.
+
 **Contact sense rationale (decided 20 Nov 2026):** the eight safety and alarm channels are **normally closed**, so a de-energised device or a broken wire reads as *alarm*, not as healthy. This is fail-safe for monitoring integrity and satisfies `AGENTS.md` section 7 ("never show stale data as live", "failed sensors are flagged"). The seven equipment-status channels are **normally open**, where open simply means not running.
 
 **Debounce rationale:** 200 ms on safety and alarm channels leaves about 4.8 s of the NFR-01 five-second budget for scan, transmit, ingest and render. 5 s on equipment status suppresses contactor chatter where latency does not matter.
@@ -58,17 +60,21 @@ Six 3-wire PT100s only; no others are installed. Two per level, mounted at **180
 
 **No heater-zone, outlet, return, heater sheath, heater pocket, thermal-oil or ambient PT100 exists.** The pair at each level is read and reported independently; comparing them is Phase 2.
 
-### Analogue 4-20 mA — AD4111
-| Signal | Note |
-| --- | --- |
-| Radar level | The primary level measurement (P1-04) |
-| *(second channel)* | `[Confirm]` what occupies the second of the two used channels — pressure level? |
+### Analogue 4-20 mA — AD4111, two of four channels used (EE, 20 Nov 2026)
+| Ch | Signal | Note |
+| --- | --- | --- |
+| 1 | Radar level | The primary level measurement (P1-04) |
+| 2 | Pressure level | The secondary level measurement |
+
+**Both level measurements have matching digital alarm contacts:** radar on channels 12 and 13, pressure on channels 10 and 11. So each level source gives an analogue value plus its own high and low alarm.
+
+**Pressure level is read and reported as a raw value only.** Comparing it against radar level is a sensor-mismatch check, which is **Phase 2**. This answers question 8 of the story card. Two channels remain free on the AD4111.
 
 ### Not present in Phase 1
 Over-temperature trip and emergency stop exist at the site but are **not routed to this board**. No fire or gas. No ambient temperature. No wind sensor.
 
-## Accuracy target (decided 20 Nov 2026, pending the sensor class)
-**NFR-02: ±2.0 °C end-to-end** over the product operating range `[Confirm range; 0 to 200 °C assumed]`.
+## Accuracy target (decided 20 Nov 2026 on delegation)
+**NFR-02: ±2.0 °C end-to-end** over a design range of **0 to 200 °C** (validate at bench with P1-25).
 
 Budget: PT100 Class B tolerance is ±(0.3 + 0.005·t), about ±1.2 °C at 180 °C; MAX31865 plus reference resistor about ±0.5 °C; 3-wire lead imbalance residual about ±0.2 °C. The PT100 class has not been confirmed, so the pessimistic Class B figure is used.
 
@@ -101,7 +107,10 @@ Modbus addresses, OPC UA node IDs, MQTT topic layout (undecided, `AGENTS.md` sec
 
 ## Open questions
 - `[Confirm]` Signal names and the numbering scheme for the six PT100 positions.
-- `[Confirm]` What occupies the second used AD4111 channel.
-- `[Confirm]` PT100 class and the product operating temperature range.
 - `[Confirm]` File names and whether the version is in the filename or a `version:` field.
 - `[Confirm]` Does the signal list also cover cloud-computed values (level %, volume, mass), or only what the device sends?
+- `[Confirm]` Update rate per digital channel. NFR-01 sets 1 s for level and temperature; the digital channels have no stated rate, and their debounce (200 ms or 5 s) implies a faster scan than 1 s on the alarm channels.
+
+## Resolved, no longer open
+- Second AD4111 channel: **pressure level** (EE, 20 Nov 2026).
+- Product temperature design range: **0 to 200 °C**, accuracy **±2.0 °C**, decided on delegation 20 Nov 2026. The PT100 class is still unconfirmed, so ±2.0 °C is the figure to test against; it tightens to ±1.0 °C if the sensors turn out to be Class A. Procuring Class A is recommended for margin.
