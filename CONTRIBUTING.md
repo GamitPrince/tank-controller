@@ -18,7 +18,7 @@ Never push directly to `main` or `develop`. Never disable a check to get a pull 
 | You changed | Who must approve |
 | --- | --- |
 | `firmware/src/safety/` or `docs/safety/` (trips, interlocks, safe states, watchdog) | The EE. Add the `safety` label |
-| `interfaces/` | All three developers (the author counts as one) |
+| `interfaces/` | Another collaborator (not you) |
 | `.github/` or `scripts/` | Another code owner listed in `.github/CODEOWNERS` (never yourself) |
 
 ## CI contract for each component

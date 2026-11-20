@@ -20,4 +20,4 @@ Closes #<issue number>
 - [ ] No debug code or secrets
 - [ ] Docs updated if needed
 - [ ] Safety: this PR does not touch a safety function (trips, interlocks, safe states, watchdog), or it carries the `safety` label and the EE has been asked to approve
-- [ ] Interfaces: this PR does not change `interfaces/`, or all three developers have been asked to review
+- [ ] Interfaces: this PR does not change `interfaces/`, or another collaborator has been asked to review
