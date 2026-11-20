@@ -1,7 +1,7 @@
 # AGENTS.md — Tank-AI project rules for coding agents
 
 Read this file completely at the start of every session. It is the standing brief for Tank-AI (AI-assisted smart tank controller, repo `GamitPrince/tank-controller`).
-Last updated: 19 Nov 2026. Source of truth for decisions is the ADRs in `docs/adr/` once pushed, then the per-feature spec you are given. If this file and a spec disagree, STOP and ask.
+Last updated: 20 Nov 2026. Source of truth for decisions is the ADRs in `docs/adr/` once pushed, then the per-feature spec you are given. If this file and a spec disagree, STOP and ask.
 
 ---
 
@@ -49,7 +49,7 @@ Active team: GamitPrince (owner, tech lead), gamitriyan-del (EE), prinz-assists.
 
 ## 4. Architecture decisions (summary; ADR files are the detail)
 
-Status (checked against the repo files, 19 Nov 2026): ADR-0003 to 0009 are **confirmed by the tech lead** (17-19 Nov 2026) and exist as untracked files in the tech lead's local `docs/adr/`, but are **not yet committed or pushed and not yet Accepted** (an ADR becomes Accepted when its PR gets one approval from gamitriyan-del or prinz-assists (decided by the tech lead 20 Nov 2026; the author cannot approve their own PR). On 20 Nov 2026 the tech lead extended this to the whole project: one approval from a collaborator other than the author is enough for every PR, including `interfaces/`, `.github/` and `scripts/`. Safety paths (`firmware/src/safety/`, `docs/safety/`) keep the EE's approval unless the tech lead says otherwise [Confirm]. The repo settings still enforce the OLD interface rule (all three developers) until story S-010 is merged, so keep following what GitHub enforces until then). ADR-0001 (public repo) is already in the repo as `docs/adr/0001-public-repository-on-github-free.md`, status Proposed, with out-of-date points (hardware files, tech lead authority). **ADR-0002 (hardware) is not in the folder**; it is Proposed and waits for the EE, so it is not pushed yet and you must not write it. `docs/adr/README.md` (index), `template.md` and `PUSH-GUIDE.md` also exist locally; `PUSH-GUIDE.md` contains a wrong PR-title scope (`docs(adr)`) and an unverified `Refs` suggestion, so do not follow it or push it. Until the ADR files are merged into `docs/adr/`, treat this table as the working decision record. Do not re-decide these; if a spec seems to contradict one, ask.
+Status (checked against the repo files, 19 Nov 2026): ADR-0003 to 0009 are **confirmed by the tech lead** (17-19 Nov 2026) and exist as untracked files in the tech lead's local `docs/adr/`, but are **not yet committed or pushed and not yet Accepted** (an ADR becomes Accepted when its PR gets one approval from gamitriyan-del or prinz-assists (decided by the tech lead 20 Nov 2026; the author cannot approve their own PR). On 20 Nov 2026 the tech lead extended this to the whole project: one approval from a collaborator other than the author is enough for every PR, including `interfaces/`, `.github/` and `scripts/`. Safety paths (`firmware/src/safety/`, `docs/safety/`) keep the EE's approval unless the tech lead says otherwise [Confirm]. Story S-010 merged on 20 Nov 2026 (PR #19), so GitHub now enforces this one-non-author-approval rule: CODEOWNERS lists `@GamitPrince @prinz-assists` on `interfaces/`, `.github/` and `scripts/`, the `interfaces-review` check accepts one approval from any collaborator other than the author, and the repository variable `INTERFACE_REVIEWERS` is `GamitPrince,prinz-assists`). ADR-0001 (public repo) is already in the repo as `docs/adr/0001-public-repository-on-github-free.md`, status Proposed, with out-of-date points (hardware files, tech lead authority). **ADR-0002 (hardware) is not in the folder**; it is Proposed and waits for the EE, so it is not pushed yet and you must not write it. `docs/adr/README.md` (index), `template.md` and `PUSH-GUIDE.md` also exist locally; `PUSH-GUIDE.md` contains a wrong PR-title scope (`docs(adr)`) and an unverified `Refs` suggestion, so do not follow it or push it. Until the ADR files are merged into `docs/adr/`, treat this table as the working decision record. Do not re-decide these; if a spec seems to contradict one, ask.
 
 | ADR | Topic | Decisions |
 |---|---|---|
@@ -75,7 +75,7 @@ Existing folders from the scaffold: `firmware/`, `gateway/`, `dashboard/`, `simu
 - **`gateway/` is probably obsolete** (ADR-0004 decision 1: no separate gateway). Do not add code there; the tech lead decides its fate in a story. CI still runs a `gateway` job, and the README, CODEOWNERS comments and story template still mention it.
 - **`firmware/src/` placeholder folders do not match ADR-0003.** The scaffold has `safety/`, `drivers/`, `control/` and `analytics/`; ADR-0003 defines four layers (hardware, measurement, record, communications) plus `safety/` for status reads. `control/` and `analytics/` are Phase 2/3 and must stay empty in Phase 1. Do not reorganize these folders unless a spec says so; the firmware skeleton story (P1-01) will decide the layout.
 - Not yet decided (ask, do not invent): where the ESP32 firmware lives; where the cloud backend lives (earlier assumption: under `dashboard/`); where Terraform lives and its state layout; database migration tool; container registry and versioning; topic layout and message batching interval.
-- `interfaces/` holds the CDDL schema and the versioned YAML signal list. Any change needs all three developers' review.
+- `interfaces/` holds the CDDL schema and the versioned YAML signal list. Any change needs one approval from a collaborator other than the author (S-010, merged 20 Nov 2026).
 
 ## 7. Coding standards
 
@@ -87,7 +87,7 @@ All acceptance criteria in the spec met; tested on simulator or bench; unit test
 
 ## 9. Feature spec format (what you will receive)
 
-Each spec at `docs/stories/S-0xx-name.md` contains: story ID and title, goal, phase check, component(s), review flags (EE / all three developers), decisions already made (with ADR references), files to create or change, interfaces touched, acceptance criteria, test plan (simulator or bench), out of scope, open questions `[Confirm]`, and PR checklist notes. Implement exactly that. If the spec is missing any of these, ask before coding.
+Each spec at `docs/stories/S-0xx-name.md` contains: story ID and title, goal, phase check, component(s), review flags (EE / one non-author collaborator), decisions already made (with ADR references), files to create or change, interfaces touched, acceptance criteria, test plan (simulator or bench), out of scope, open questions `[Confirm]`, and PR checklist notes. Implement exactly that. If the spec is missing any of these, ask before coding.
 
 ## 10. Current state and first tasks
 
