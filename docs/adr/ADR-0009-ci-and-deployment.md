@@ -1,6 +1,6 @@
 # ADR-0009: CI and deployment: cloud blueprints, environments, deployment, AWS access, monitoring and security checks
 
-- Status: Confirmed by the tech lead on 19 Nov 2026, including rule 7 (full tech lead authority) and its recorded downsides; becomes Accepted when all three developers approve the PR. Not yet pushed to GitHub.
+- Status: Confirmed by the tech lead on 19 Nov 2026, including rule 7 (full tech lead authority) and its recorded downsides; becomes Accepted when one collaborator other than the author approves the PR. Not yet pushed to GitHub.
 - Date: 19 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-01 (repository and CI skeleton) and the cloud and dashboard stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
