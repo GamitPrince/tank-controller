@@ -1,6 +1,6 @@
 # ADR-0007: Cloud architecture: hosting, provider, databases, retention, backend and updates
 
-- Status: Confirmed by the tech lead on 18 Nov 2026 as the direction, including the three proposed rules; becomes Accepted when all three developers approve the PR. No account is opened and nothing is bought until three gates pass: the customers' answers (see Questions for the customers), the early cloud test (see To verify), and a Tiger Cloud quote for 100 and 1,000 devices. If a gate fails, we use the fallback in decision 4 or reopen the decision. Not yet pushed to GitHub.
+- Status: Confirmed by the tech lead on 18 Nov 2026 as the direction, including the three proposed rules; becomes Accepted when one collaborator other than the author approves the PR. No account is opened and nothing is bought until three gates pass: the customers' answers (see Questions for the customers), the early cloud test (see To verify), and a Tiger Cloud quote for 100 and 1,000 devices. If a gate fails, we use the fallback in decision 4 or reopen the decision. Not yet pushed to GitHub.
 - Date: 17 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-12, P1-13, P1-14, P1-16 and the cloud-side stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
