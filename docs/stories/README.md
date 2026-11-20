@@ -27,7 +27,7 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 | ID | Story | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
 | P1-00 | Tech stack and ADRs | 5 | **Partly done** | ADR-0003 to 0009 merged. ADR-0002 unwritten (EE), ADR-0001 still Proposed, no layer skeleton builds in CI |
-| P1-01 | Repo, protection, PR template, CI skeleton | 3 | **Done** | Residual: no component `ci.sh` yet |
+| P1-01 | Repo, protection, PR template, CI skeleton | 3 | **Done** | Residual `ci.sh` work carved out as **CHORE-01** |
 | P1-02 | Simulator | 5 | Not started | |
 | P1-03 | Signal list v1 | 3 | **Ready to start** | Renamed by ADR-0004. **EE inventory received 20 Nov — no longer blocked** |
 | P1-04 | Radar level, volume, mass | 5 | Not started | **Conflict: ADR-0004 moves volume and mass to the cloud** |
@@ -54,6 +54,16 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 | P1-25 | Bench FAT and `sys-v0.1.0` | 5 | Not started | Needs hardware |
 | P1-26 | Figma screen designs | 3 | Not started | **Owner unknown: who builds the dashboard** |
 | P1-27 | Valve, pump, motor and heater status | 3 | Ready after P1-03 | **Not on the story card.** Added 20 Nov 2026 — channels 3 to 9 had no story |
+
+## Repo chores
+
+Not on the story card. Repo infrastructure identified while working through Phase 1.
+
+| ID | Chore | Pts | Status | Note |
+| --- | --- | --- | --- | --- |
+| CHORE-01 | Component `ci.sh` scripts and minimal skeletons | 5 | **Specced, ready** | **Blocks the first code story.** Also closes P1-00 criterion 4 and P1-01's residual item |
+
+Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, renaming `gitattributes` to `.gitattributes`, and deciding the fate of `gateway/`.
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
 
