@@ -1,9 +1,8 @@
 # Who must approve changes to which paths (SOP-SDLC-001, GitHub Workflow Guide section 3).
 #
 # People:
-#   @GamitPrince       repository owner, project manager, firmware developer, gateway developer
-#   @ArkinGamit        dashboard developer
-#   @SHINE-18          dashboard developer
+#   @GamitPrince       repository owner, project manager / tech lead, firmware developer
+#   @prinz-assists     collaborator
 #   @gamitriyan-del    electrical engineer (EE)
 # Every person listed must be a collaborator with write access, or the rule is ignored.
 #
@@ -19,12 +18,12 @@
 /firmware/src/safety/   @gamitriyan-del
 /docs/safety/           @gamitriyan-del
 
-# Register map and API contract: any one of these satisfies this rule, and the
-# "interfaces-review" check then requires all three people (the author counts as one).
-/interfaces/            @GamitPrince @ArkinGamit @SHINE-18
+# Register map and API contract: any code owner listed below who is not the author
+# can approve, satisfying both this rule and the "interfaces-review" check.
+/interfaces/            @GamitPrince @prinz-assists
 
 # CI, repository policy and scripts: stops a feature pull request from quietly
-# weakening a check or the 80% coverage gate. Any one of the three developers who is
-# not the author can approve.
-/.github/               @GamitPrince @ArkinGamit @SHINE-18
-/scripts/               @GamitPrince @ArkinGamit @SHINE-18
+# weakening a check or the 80% coverage gate. Any code owner who is not the
+# author can approve.
+/.github/               @GamitPrince @prinz-assists
+/scripts/               @GamitPrince @prinz-assists
