@@ -1,6 +1,6 @@
 # ADR-0008: Backend and dashboard: languages, login, access, audit trail, live updates and tests
 
-- Status: Confirmed by the tech lead on 19 Nov 2026, including the four proposed rules, the role meanings and the named-admin-account rule; becomes Accepted when all three developers approve the PR. Not yet pushed to GitHub.
+- Status: Confirmed by the tech lead on 19 Nov 2026, including the four proposed rules, the role meanings and the named-admin-account rule; becomes Accepted when one collaborator other than the author approves the PR. Not yet pushed to GitHub.
 - Date: 18 Nov 2026 (confirmed 19 Nov 2026)
 - Story: P1-00 (issue S-002); shapes P1-19, P1-21, P1-26 and the backend and dashboard stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
