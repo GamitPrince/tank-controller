@@ -1,6 +1,6 @@
 # ADR-0004: Communications architecture, data format and simulator
 
-- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when all three developers approve the PR (the EE reviews the hardware points; the security details are completed in the security ADR). Not yet pushed to GitHub.
+- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when one collaborator other than the author approves the PR (the EE reviews the hardware points; the security details are completed in the security ADR). Not yet pushed to GitHub.
 - Date: 2 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-02, P1-03, P1-04, P1-11 to P1-17
 - Deciders: GamitPrince (project manager / tech lead)
