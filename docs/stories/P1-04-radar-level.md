@@ -10,7 +10,8 @@ Read the radar level transmitter and make the level available as an engineering 
 Phase 1. Read-only. No output, no control.
 
 ## Decisions already made
-- **ADR-0002:** radar level arrives as 4-20 mA on the **AD4111** (two of four channels used), input-only.
+- **ADR-0002, confirmed by the EE 20 Nov 2026:** radar level arrives as 4-20 mA on **AD4111 channel 1**, input-only. **Channel 2 carries pressure level**, the secondary level measurement; two channels remain free.
+- **Each level source has its own alarm contacts:** radar on digital channels 12 and 13, pressure on channels 10 and 11 (read by P1-09).
 - **ADR-0003:** own small AD4111 SPI module; hardware layer counts towards the 80% coverage gate; simulated chips on `native_sim` for laptop testing.
 - **ADR-0004 decision 10:** **volume and mass are computed in the cloud, not on the controller. The controller is send-only.**
 
@@ -37,10 +38,15 @@ The 0.5% accuracy criterion and the density correction therefore belong to the c
 ## Dependency
 P1-03 (signal list) first.
 
+## Pressure level — story card question 8, answered
+The secondary pressure level **is** measured, on AD4111 channel 2. Per the card's own assumption it is read and shown as a **raw value only**: comparing it against radar level is a sensor-mismatch check and that is **Phase 2**. Do not average, cross-check or substitute one for the other.
+
+`[Confirm]` whether reading pressure level belongs in this story alongside radar — it is the same AD4111 driver, so splitting it into its own story would duplicate the work.
+
 ## Out of scope
-Any write to the AD4111 beyond configuration. Pressure level secondary reading (story card question 8, `[Confirm]`).
+Any write to the AD4111 beyond configuration. Comparing radar against pressure level (Phase 2).
 
 ## Open questions
 - `[Confirm]` Split firmware and cloud as above?
 - `[Confirm]` Where does the geometry table live, and who owns it?
-- `[Confirm]` Is the secondary pressure level shown in Phase 1 as a raw value?
+- `[Confirm]` Does this story also read pressure level, or does that get its own story?

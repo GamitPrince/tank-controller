@@ -53,17 +53,21 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 | P1-24 | Docs set and Feature Registry | 3 | **Partly done** | README and CHANGELOG exist; runbook and registry missing |
 | P1-25 | Bench FAT and `sys-v0.1.0` | 5 | Not started | Needs hardware |
 | P1-26 | Figma screen designs | 3 | Not started | **Owner unknown: who builds the dashboard** |
+| P1-27 | Valve, pump, motor and heater status | 3 | Ready after P1-03 | **Not on the story card.** Added 20 Nov 2026 — channels 3 to 9 had no story |
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
 
 Controller is the **NXP FRDM-MCXN947** as ADR-0002 says; "nucleo" in an earlier reply was a slip.
 
-- **15 of 16 digital channels used**, channel 16 spare. Channels 1 to 2 safety switches, 3 to 9 equipment status, 10 to 15 alarms. Full table in `P1-03-signal-list-v1.md`.
+- **15 of 16 digital channels used**, channel 16 spare. Channels 1 to 2 safety switches (**P1-05**), 3 to 9 equipment status (**P1-27**), 10 to 15 alarms (**P1-09**). Full table in `P1-03-signal-list-v1.md`.
+- **AD4111: radar level on channel 1, pressure level on channel 2**, two channels free. Each level source also has its own high and low alarm contacts. Pressure level is a raw reading only — comparing it with radar is a Phase 2 mismatch check. This answers story card question 8.
 - **Six 3-wire PT100s only** — 2 upper, 2 middle, 2 bottom, 180 degrees apart. One MAX31865, **separate chip select per channel with common SCK, MOSI and MISO** (matches ADR-0002; "daisy chain" in an earlier reply was loose wording).
 - **Not present:** over-temperature trip, emergency stop, fire or gas, ambient temperature, wind, thermal oil, heater sheath or pocket sensors.
 - **Decided on delegation 20 Nov 2026:** debounce 200 ms on safety and alarm channels, 5 s on equipment status; safety and alarm contacts **normally closed** (fail-safe), equipment status normally open; accuracy target **±2.0 °C** pending the PT100 class.
 
-**Two stories are void** (P1-07, P1-08), returning 5 points. Phase 1 is now **25 stories, 102 points**.
+- **Decided on delegation:** product temperature design range **0 to 200 °C**, accuracy **±2.0 °C** end-to-end. PT100 class still unconfirmed, so ±2.0 °C is the figure to test against; it tightens to ±1.0 °C if the sensors are Class A, which is worth procuring for margin.
+
+**Two stories are void** (P1-07, P1-08), returning 5 points, and **one was added** (P1-27, 3 points, not on the story card). Phase 1 is now **26 stories, 105 points** against the card's original 27 and 107.
 
 ## Tracked document corrections needed
 
