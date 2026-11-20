@@ -1,6 +1,6 @@
 # ADR-0005: Security design for devices, certificates, firmware updates and remote access
 
-- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when all three developers approve the PR (the EE reviews the hardware and device-lock points). Not yet pushed to GitHub.
+- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when one collaborator other than the author approves the PR (the EE reviews the hardware and device-lock points). Not yet pushed to GitHub.
 - Date: 17 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-12, P1-16 and the firmware-update work
 - Deciders: GamitPrince (project manager / tech lead)
