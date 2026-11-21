@@ -96,8 +96,15 @@ analogue:
 # and MISO, so `source.chip_select` is the channel's own select line.
 #
 # Design range 0 to 200 degC, accuracy target 2.0 degC end to end, validated at
-# bench by P1-25. [Confirm] The PT100 class is unconfirmed, so the pessimistic
-# Class B budget is used; Class A sensors would allow tightening to 1.0 degC.
+# bench by P1-25.
+#
+# PT100 class: take **Class B** (tech lead, 21 Nov 2026, S-023). The class was
+# previously unconfirmed and the pessimistic Class B budget was used anyway, so
+# the accuracy target stays 2.0 degC and `accuracy_degc` does not change. The
+# decision is provisional: if the delivered sensors are Class A, the target can
+# be tightened to 1.0 degC, which is a `[Confirm]` relaxation inside v1 and
+# needs no new signal-list version. `source.sensor_class` carries the figure so
+# a consumer does not have to infer it from the accuracy budget.
 #
 # No heater-zone, outlet, return, heater sheath, heater pocket, thermal-oil or
 # ambient PT100 exists. Those signals must not be added to Phase 1.
@@ -117,6 +124,7 @@ temperature:
       device: MAX31865
       chip_select: 1
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: upper
       orientation_deg: 0
@@ -136,6 +144,7 @@ temperature:
       device: MAX31865
       chip_select: 2
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: upper
       orientation_deg: 180
@@ -155,6 +164,7 @@ temperature:
       device: MAX31865
       chip_select: 3
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: middle
       orientation_deg: 0
@@ -174,6 +184,7 @@ temperature:
       device: MAX31865
       chip_select: 4
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: middle
       orientation_deg: 180
@@ -193,6 +204,7 @@ temperature:
       device: MAX31865
       chip_select: 5
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: bottom
       orientation_deg: 0
@@ -212,6 +224,7 @@ temperature:
       device: MAX31865
       chip_select: 6
       sensor: PT100
+      sensor_class: B   # provisional, see the note above
       wiring: 3-wire
       level: bottom
       orientation_deg: 180
@@ -221,9 +234,12 @@ temperature:
 # Digital inputs: 15 of 16 optocoupler channels, status-only (ADR-0002).
 # ---------------------------------------------------------------------------
 #
-# Channel 16 is spare. Over-temperature trip and emergency stop exist at the
-# site but are NOT routed to this board; there is no fire or gas input. A screen
-# or record must not imply a signal we do not monitor (AGENTS.md section 5).
+# Channel 16 is spare, and stays spare (tech lead, 21 Nov 2026, S-023).
+# Over-temperature trip and emergency stop exist at the site but are NOT routed
+# to this board; there is no fire or gas input. Wiring either of them into the
+# spare channel was considered and deliberately not done in Phase 1, so no
+# signal is added here. A screen or record must not imply a signal we do not
+# monitor (AGENTS.md section 5).
 #
 # contact_sense, decided 20 Nov 2026, and NOT to be harmonised:
 #   normally_closed on the safety-chain and alarm channels, so a de-energised
