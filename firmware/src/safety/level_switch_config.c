@@ -17,13 +17,19 @@
 
 #include "tank_safety_signals.h"
 
-#define TANK_LEVEL_SWITCH_ENTRY(name, id, channel, sense, debounce, scan)                          \
+/*
+ * The parameter names are prefixed because macro substitution replaces a
+ * parameter wherever its token appears, a field designator included: a
+ * parameter called `channel` would turn `.channel = (channel)` into
+ * `.1 = (1)`, which does not compile.
+ */
+#define TANK_LEVEL_SWITCH_ENTRY(arg_name, arg_id, arg_channel, arg_sense, arg_debounce, arg_scan)  \
 	{                                                                                          \
-	    .signal_id = (id),                                                                     \
-	    .channel = (channel),                                                                  \
-	    .sense = (sense),                                                                      \
-	    .debounce_ms = (debounce),                                                             \
-	    .scan_interval_ms = (scan),                                                            \
+	    .signal_id = (arg_id),                                                                 \
+	    .channel = (arg_channel),                                                              \
+	    .sense = (arg_sense),                                                                  \
+	    .debounce_ms = (arg_debounce),                                                         \
+	    .scan_interval_ms = (arg_scan),                                                        \
 	},
 
 static const struct tank_level_switch_config switches[] = {
