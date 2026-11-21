@@ -62,8 +62,9 @@ Not on the story card. Repo infrastructure identified while working through Phas
 | ID | Chore | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
 | CHORE-01 | Component `ci.sh` scripts and minimal skeletons | 5 | **Done** (S-015) | `firmware/` and `simulator/` only. Firmware job runs in about 3 minutes, so the 15-minute timeout stood. cppcheck left advisory and Zephyr-tree caching not added — both need a workflow change, so each is its own story |
+| CHORE-02 | Rename `gitattributes` to `.gitattributes` | 2 | **Specced** (S-021), not started | Spec: [`CHORE-02-gitattributes-line-endings.md`](CHORE-02-gitattributes-line-endings.md). A one-file rename: all 122 tracked blobs are already LF, so `--renormalize` produces no commit. 107 of 122 working-tree files are CRLF, the 4 `.sh` scripts among them |
 
-Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, renaming `gitattributes` to `.gitattributes`, and deciding the fate of `gateway/`.
+Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, and deciding the fate of `gateway/`.
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
 
@@ -88,7 +89,7 @@ Controller is the **NXP FRDM-MCXN947** as ADR-0002 says; "nucleo" in an earlier 
 1. **Epic E3 (P1-11 to P1-16, 23 points) was written for a separate gateway that ADR-0004 removed.** Six of 27 stories need rewriting or dropping, not just re-pointing. The `gateway/` folder is obsolete too.
 2. **The story card predates ADR-0004 to ADR-0009.** It still says "all three developers" review `interfaces/` (superseded by S-010), register map (superseded by the YAML signal list), Modbus, OPC UA and VPN.
 3. **Stories the ADRs now require that the card does not contain:** ESP32 communications firmware (ADR-0006 says a story is "to be created"), device certificate and CA provisioning plus the QR claim flow (ADR-0005), Terraform or OpenTofu blueprints and the test and live environments (ADR-0009), the early cloud test that gates ADR-0007. The 107-point estimate is therefore low.
-4. **Known repo chores not on the card:** fix `gitattributes` to `.gitattributes`; correct the seven merged ADR status lines; decide the fate of `gateway/`; commit these specs.
+4. **Known repo chores not on the card:** correct the seven merged ADR status lines; decide the fate of `gateway/`. Renaming `gitattributes` to `.gitattributes` is now specced as CHORE-02 above.
 5. The sprint plan's point totals no longer hold once 1 to 3 are settled.
 
 The story card is a Claude Doc owned by the project manager, so I have not changed it. These are recommendations for it.
