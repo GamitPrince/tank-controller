@@ -39,6 +39,9 @@ Thumbs.db
 
 # Zephyr west workspace (fetched by firmware/ci.sh, never committed)
 .west/
+bootloader/
+doc/
+tools/
 twister-out/
 
 # Python packaging metadata
