@@ -1,0 +1,22 @@
+# West manifest for the Tank-AI firmware.
+#
+# ADR-0003 pins Zephyr 4.5.0. Change the revision deliberately, in its own
+# commit, and say why in the commit message: every firmware build and every
+# coverage figure depends on it.
+#
+# The Zephyr tree and its modules are fetched into a workspace outside this
+# repository (see ci.sh). They are never committed: AGENTS.md section 3 forbids
+# committing the vendor SDK, and .gitignore blocks zephyr/ and modules/.
+manifest:
+  remotes:
+    - name: upstream
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: upstream
+      revision: v4.5.0
+      import: true
+
+  self:
+    path: firmware

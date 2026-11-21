@@ -36,3 +36,12 @@ modules/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Zephyr west workspace (fetched by firmware/ci.sh, never committed)
+.west/
+twister-out/
+
+# Python packaging metadata
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
