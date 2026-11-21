@@ -1,0 +1,575 @@
+# Tank-AI Phase 1 signal list, version 1.
+#
+# ADR-0004 decision 9: a versioned YAML signal list with numeric IDs replaces
+# the register map. This file is the single definition of every signal the
+# device sends, so firmware, simulator, cloud and dashboard mean the same thing
+# by the same name. Records identify signals by `id`, never by name or position.
+#
+# Source of the inventory: the EE's Phase 1 signal list of 20 Nov 2026, recorded
+# in docs/stories/P1-03-signal-list-v1.md and AGENTS.md section 5.
+#
+# Change rule: see interfaces/README.md. In short, within v1 you may only add
+# signals or relax a `[Confirm]`; anything that changes the meaning of an
+# existing id creates signals-v2.yaml.
+
+version: 1
+status: draft
+list_date: 2026-11-21
+story: S-017
+phase: 1
+
+# Every Phase 1 signal is read-only. The controller is send-only (ADR-0004
+# decision 10) and the hardwired safety chain is only ever read (AGENTS.md
+# section 1), so `read_only: false` must not appear in a Phase 1 signal list.
+# A writable signal would be a phase change, not a signal-list edit.
+#
+# Cloud-computed values (level percent, volume, mass) are deliberately absent:
+# ADR-0004 decision 10 computes them in the cloud from these readings plus the
+# tank geometry, so they are not signals the device sends.
+#
+# Conventions
+#   id             stable numeric identifier; never reused, never renumbered.
+#   name           snake_case identifier used in code and in the API.
+#   unit           engineering unit of the value after `scale` is applied.
+#   scale          multiply the transmitted integer by this to get the unit.
+#   update_rate_ms how often the signal appears in a scan record.
+#   read_only      true for every Phase 1 signal (see above).
+#   class          safety_chain, alarm, equipment_status, measurement or health.
+#   source         which input channel the reading comes from.
+#
+# Id blocks: 1000 analogue, 2000 temperature, 3000 digital, 9000 device health.
+
+# ---------------------------------------------------------------------------
+# Analogue 4-20 mA inputs: AD4111, two of four channels used (ADR-0002).
+# ---------------------------------------------------------------------------
+#
+# [Confirm] Both channels report the measured loop current, not a level in
+# engineering units, because no transducer range has been supplied yet. The
+# cloud applies the transducer range and the tank geometry (ADR-0004 decision
+# 10). Supplying the two ranges would let a later version report mm or percent
+# instead; until then, reporting mA keeps the device from inventing a span.
+#
+# Out-of-range handling is not configured here: a reading outside 4-20 mA is a
+# fault, flagged per reading in the record and excluded, never clamped or
+# silently replaced (AGENTS.md section 7).
+
+analogue:
+  - id: 1001
+    name: level_radar_loop_current
+    description: Radar level transmitter, the primary level measurement.
+    class: measurement
+    unit: mA
+    scale: 0.001          # transmitted as microamps
+    valid_range: [4.0, 20.0]
+    update_rate_ms: 1000  # NFR-01
+    read_only: true
+    source:
+      device: AD4111
+      channel: 1
+    read_by_story: P1-04
+
+  - id: 1002
+    name: level_pressure_loop_current
+    description: >-
+      Hydrostatic pressure level transmitter, the secondary level measurement.
+      Reported as a raw value only; comparing it against the radar level is a
+      sensor-mismatch check and is Phase 2.
+    class: measurement
+    unit: mA
+    scale: 0.001
+    valid_range: [4.0, 20.0]
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: AD4111
+      channel: 2
+    read_by_story: P1-04
+
+# ---------------------------------------------------------------------------
+# PT100 temperatures: six 3-wire PT100s on one MAX31865 (ADR-0002).
+# ---------------------------------------------------------------------------
+#
+# Two sensors per level, mounted 180 degrees apart across the tank diameter.
+# Each is read and reported independently; comparing a pair is Phase 2.
+#
+# Shared SPI bus with a separate chip select per channel and common SCK, MOSI
+# and MISO, so `source.chip_select` is the channel's own select line.
+#
+# Design range 0 to 200 degC, accuracy target 2.0 degC end to end, validated at
+# bench by P1-25. [Confirm] The PT100 class is unconfirmed, so the pessimistic
+# Class B budget is used; Class A sensors would allow tightening to 1.0 degC.
+#
+# No heater-zone, outlet, return, heater sheath, heater pocket, thermal-oil or
+# ambient PT100 exists. Those signals must not be added to Phase 1.
+
+temperature:
+  - id: 2001
+    name: temp_product_upper_a
+    description: Product temperature, upper level, 0 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01           # transmitted as centi-degrees Celsius
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 1
+      sensor: PT100
+      wiring: 3-wire
+      level: upper
+      orientation_deg: 0
+    read_by_story: P1-06
+
+  - id: 2002
+    name: temp_product_upper_b
+    description: Product temperature, upper level, 180 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 2
+      sensor: PT100
+      wiring: 3-wire
+      level: upper
+      orientation_deg: 180
+    read_by_story: P1-06
+
+  - id: 2003
+    name: temp_product_middle_a
+    description: Product temperature, middle level, 0 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 3
+      sensor: PT100
+      wiring: 3-wire
+      level: middle
+      orientation_deg: 0
+    read_by_story: P1-06
+
+  - id: 2004
+    name: temp_product_middle_b
+    description: Product temperature, middle level, 180 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 4
+      sensor: PT100
+      wiring: 3-wire
+      level: middle
+      orientation_deg: 180
+    read_by_story: P1-06
+
+  - id: 2005
+    name: temp_product_bottom_a
+    description: Product temperature, bottom level, 0 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 5
+      sensor: PT100
+      wiring: 3-wire
+      level: bottom
+      orientation_deg: 0
+    read_by_story: P1-06
+
+  - id: 2006
+    name: temp_product_bottom_b
+    description: Product temperature, bottom level, 180 degrees.
+    class: measurement
+    unit: degC
+    scale: 0.01
+    valid_range: [0.0, 200.0]
+    accuracy_degc: 2.0
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: MAX31865
+      chip_select: 6
+      sensor: PT100
+      wiring: 3-wire
+      level: bottom
+      orientation_deg: 180
+    read_by_story: P1-06
+
+# ---------------------------------------------------------------------------
+# Digital inputs: 15 of 16 optocoupler channels, status-only (ADR-0002).
+# ---------------------------------------------------------------------------
+#
+# Channel 16 is spare. Over-temperature trip and emergency stop exist at the
+# site but are NOT routed to this board; there is no fire or gas input. A screen
+# or record must not imply a signal we do not monitor (AGENTS.md section 5).
+#
+# contact_sense, decided 20 Nov 2026, and NOT to be harmonised:
+#   normally_closed on the safety-chain and alarm channels, so a de-energised
+#     device or a broken wire reads as alarm, never as healthy.
+#   normally_open on the equipment-status channels, where open simply means
+#     the equipment is not running.
+# `value_true_means` states what a transmitted true stands for, so no consumer
+# has to re-derive it from the contact sense.
+#
+# debounce_ms is the EE's figure. scan_interval_ms is how fast the channel is
+# sampled so that debounce can be applied, and is [Confirm]: 50 ms gives four
+# samples inside a 200 ms debounce and 1000 ms gives five inside 5 s. The 200 ms
+# debounce leaves about 4.8 s of the NFR-01 five-second budget for scan,
+# transmit, ingest and render.
+#
+# Channels 1 and 2 are safety-chain reads and channels 10 to 15 are alarm
+# reads; both belong in firmware/src/safety/ and are read-only status inputs.
+# Channels 3 to 9 are equipment status and do not belong there.
+
+digital:
+  # -- Safety-chain reads (read by P1-05) ----------------------------------
+  - id: 3001
+    name: level_switch_high_high
+    description: High-high level switch, read as status only.
+    class: safety_chain
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 1
+    contact_sense: normally_closed
+    value_true_means: high-high level reached, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-05
+
+  - id: 3002
+    name: level_switch_low_low
+    description: Low-low level switch, read as status only.
+    class: safety_chain
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 2
+    contact_sense: normally_closed
+    value_true_means: low-low level reached, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-05
+
+  # -- Alarm reads (read by P1-09) -----------------------------------------
+  - id: 3011
+    name: alarm_level_pressure_low
+    description: Low pressure level alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 10
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  - id: 3012
+    name: alarm_level_pressure_high
+    description: High pressure level alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 11
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  - id: 3013
+    name: alarm_level_radar_low
+    description: Low radar level alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 12
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  - id: 3014
+    name: alarm_level_radar_high
+    description: High radar level alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 13
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  - id: 3015
+    name: alarm_temp_mixture_low
+    description: Low mixture temperature alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 14
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  - id: 3016
+    name: alarm_dry_run
+    description: Pump dry-run alarm contact.
+    class: alarm
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 15
+    contact_sense: normally_closed
+    value_true_means: alarm active, or the circuit is broken
+    debounce_ms: 200
+    scan_interval_ms: 50
+    safety_path: true
+    read_by_story: P1-09
+
+  # -- Equipment status (read by P1-27) ------------------------------------
+  - id: 3021
+    name: status_inlet_valve
+    description: Inlet valve status.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 3
+    contact_sense: normally_open
+    value_true_means: valve open
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3022
+    name: status_inlet_pump
+    description: Inlet pump status.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 4
+    contact_sense: normally_open
+    value_true_means: pump running
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3023
+    name: status_outlet_pump
+    description: Outlet pump status.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 5
+    contact_sense: normally_open
+    value_true_means: pump running
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3024
+    name: status_outlet_valve
+    description: Outlet valve status.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 6
+    contact_sense: normally_open
+    value_true_means: valve open
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3025
+    name: status_mixture_motor
+    description: Mixture motor on or off.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 7
+    contact_sense: normally_open
+    value_true_means: motor running
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3026
+    name: status_base_heater
+    description: Base heater on or off.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 8
+    contact_sense: normally_open
+    value_true_means: heater on
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+  - id: 3027
+    name: status_main_heater
+    description: Main heater on or off.
+    class: equipment_status
+    unit: bool
+    scale: 1
+    update_rate_ms: 1000
+    read_only: true
+    source:
+      device: optocoupler
+      channel: 9
+    contact_sense: normally_open
+    value_true_means: heater on
+    debounce_ms: 5000
+    scan_interval_ms: 1000
+    safety_path: false
+    read_by_story: P1-27
+
+# ---------------------------------------------------------------------------
+# Device health.
+# ---------------------------------------------------------------------------
+#
+# [Confirm] This is a deliberate minimum, grounded in decisions already made.
+# P1-02, P1-14 and P1-15 may add health signals in a later v1 revision; the
+# change rule in interfaces/README.md allows adding ids without a v2.
+#
+# The per-reading quality flag and age in records.cddl already carry "this
+# sensor failed" and "this value is stale" (ADR-0008), so no health signal
+# duplicates them.
+#
+# Boot id and the "time not yet known" flag (ADR-0004 decision 11) are record
+# header fields, not signals, because they describe the whole scan.
+
+health:
+  - id: 9001
+    name: health_uptime
+    description: Seconds since boot, the basis of boot-relative time.
+    class: health
+    unit: s
+    scale: 1
+    update_rate_ms: 60000
+    read_only: true
+    source:
+      device: controller
+    read_by_story: P1-15
+
+  - id: 9002
+    name: health_log_buffer_used
+    description: >-
+      Fill level of the append-only flash log used while the cloud is
+      unreachable (ADR-0004 decision 12).
+    class: health
+    unit: percent
+    scale: 0.1
+    valid_range: [0.0, 100.0]
+    update_rate_ms: 60000
+    read_only: true
+    source:
+      device: controller
+    read_by_story: P1-14
+
+  - id: 9003
+    name: health_cloud_link_up
+    description: >-
+      True while the cloud is acknowledging publishes within the configured
+      window, about 10 s (ADR-0004 decision 8).
+    class: health
+    unit: bool
+    scale: 1
+    update_rate_ms: 60000
+    read_only: true
+    source:
+      device: controller
+    read_by_story: P1-14

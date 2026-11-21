@@ -1,0 +1,66 @@
+; Tank-AI Phase 1 CBOR record schema, version 1.
+;
+; ADR-0004 decision 6: records are CBOR, described by this CDDL schema.
+; ADR-0004 decision 9: records identify signals by numeric id and carry one
+;   timestamp per scan.
+; ADR-0004 decision 11: time is SNTP where available, otherwise boot-relative,
+;   with a boot id and a "time not yet known" flag.
+; ADR-0008: every value carries a quality flag and an age.
+;
+; The device is send-only (ADR-0004 decision 10). There is no command record
+; and no inbound message type in Phase 1; adding one would be a phase change.
+;
+; Map keys are short text strings rather than integers: the record is a
+; cross-team contract that four components read, and the compact-on-the-wire
+; job is done by the delta-encoded flash log (ADR-0004 decision 12) and by
+; sending scaled integers instead of floats.
+
+start = record
+
+; ---------------------------------------------------------------------------
+; A scan record: one sample of a set of signals, from one device, at one time.
+; ---------------------------------------------------------------------------
+record = {
+  v: 1,                   ; this schema version; bump for an incompatible change
+  dev: device-id,
+  sl: uint,               ; signals-v?.yaml `version` the ids below come from
+  boot: boot-id,
+  seq: uint,              ; per-boot record counter, for delivery confirmation
+  up: uint,               ; milliseconds since boot, always present
+  tk: bool,               ; true when wall-clock time is known
+  ? t: uint,              ; Unix seconds UTC; present only when tk is true
+  r: [+ reading],
+}
+
+; The device id is the identifier in the commissioning QR code (ADR-0005). It
+; is not a customer, plant or tank name: the cloud holds that mapping, assigned
+; once when an admin claims the device.
+device-id = tstr .size (1..64)
+
+; Random per-boot identifier, so records buffered before the clock was known
+; can be placed on a timeline once it is (ADR-0004 decision 11).
+boot-id = bstr .size 16
+
+; ---------------------------------------------------------------------------
+; One signal's value.
+; ---------------------------------------------------------------------------
+; `val` is a scaled integer or a bool, never a float: multiply by the signal's
+; `scale` from the signal list to get the engineering value. A reading whose
+; `q` is not `good` must not be shown as a live measurement (AGENTS.md section
+; 7); a failed sensor is flagged and excluded, never silently replaced, so
+; `val` is absent when there is no trustworthy number to send.
+reading = {
+  id: uint,               ; `id` from the signal list
+  ? val: int / bool,      ; absent when q is fault or unconfigured
+  q: quality,
+  age: uint,              ; milliseconds between sampling this signal and `up`
+}
+
+quality = &quality-values
+quality-values = (
+  good: 0,                ; sampled normally, inside the valid range
+  stale: 1,               ; last known value, not refreshed this scan
+  out-of-range: 2,        ; sampled, but outside the signal's valid_range
+  fault: 3,               ; sensor or bus failure; no value is sent
+  unconfigured: 4,        ; channel present in hardware but not commissioned
+)
