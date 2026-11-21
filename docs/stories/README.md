@@ -64,6 +64,7 @@ Not on the story card. Repo infrastructure identified while working through Phas
 | CHORE-01 | Component `ci.sh` scripts and minimal skeletons | 5 | **Done** (S-015) | `firmware/` and `simulator/` only. Firmware job runs in about 3 minutes, so the 15-minute timeout stood. cppcheck left advisory and Zephyr-tree caching not added — both need a workflow change, so each is its own story |
 | CHORE-02 | Rename `gitattributes` to `.gitattributes` | 2 | **Specced** (S-021), not started | Spec: [`CHORE-02-gitattributes-line-endings.md`](CHORE-02-gitattributes-line-endings.md). A one-file rename: all 122 tracked blobs are already LF, so `--renormalize` produces no commit. 107 of 122 working-tree files are CRLF, the 4 `.sh` scripts among them |
 
+| CHORE-03 | `pr-policy` reads labels from the event payload | 1 | **Specced** (S-024), not started | Spec: [`CHORE-03-pr-policy-label-source.md`](CHORE-03-pr-policy-label-source.md). Observed on PR #46: the `opened` event fires before `gh pr create` attaches the labels, so the first run demands a `safety` label that is present, and a re-run replays the same payload and fails again. Edits a CODEOWNERS policy file, so the tech lead decides first |
 Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, and deciding the fate of `gateway/`.
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
