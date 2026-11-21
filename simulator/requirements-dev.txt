@@ -2,3 +2,9 @@
 pytest==8.3.4
 pytest-cov==6.0.0
 ruff==0.8.4
+
+# Runtime dependencies, pinned here as well so a CI run is reproducible. The
+# ranges that a consumer of the package gets are in pyproject.toml.
+cbor2==5.6.5
+PyYAML==6.0.3
+cddlparser==0.6.0
