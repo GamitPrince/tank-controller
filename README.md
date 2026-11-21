@@ -7,11 +7,11 @@ Tank-AI: monitoring and (in later phases) control for hot-liquid storage tanks. 
 | Folder | Contents |
 | --- | --- |
 | `firmware/` | Controller board code. `firmware/src/safety/` needs the EE's approval |
-| `gateway/` | Data pipeline, Modbus, MQTT, OPC UA, buffering |
+| `gateway/` | Empty and probably obsolete: ADR-0004 removed the separate gateway, so the controller collects and communicates itself. Do not add code here |
 | `dashboard/` | Web interface |
 | `simulator/` | Tank and heater simulator used by everyone for testing |
-| `hardware/` | Schematics, BOM, wiring diagrams |
-| `interfaces/` | Register map, MQTT topics, API contract. Changes need all three developers |
+| `hardware/` | Bill of materials and wiring notes. Schematics and hardware review records stay in a private location, never in this public repo |
+| `interfaces/` | Versioned YAML signal list, CDDL record schema, MQTT topics, API contract. Changes need one approval from a collaborator other than the author |
 | `docs/` | RSD, ADRs, runbook, setup guide, safety docs |
 
 Start here: [CONTRIBUTING.md](CONTRIBUTING.md). Repository setup: [docs/github-setup.md](docs/github-setup.md).
