@@ -1,0 +1,31 @@
+[project]
+name = "tanksim"
+version = "0.0.0"
+description = "Tank-AI Phase 1 simulator (ADR-0004 decision 13)"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["tanksim"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+branch = true
+source = ["tanksim"]
+
+[tool.coverage.report]
+# Only third-party and generated code is excluded. Our own code all counts.
+exclude_also = ["if TYPE_CHECKING:"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

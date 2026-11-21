@@ -61,7 +61,7 @@ Not on the story card. Repo infrastructure identified while working through Phas
 
 | ID | Chore | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
-| CHORE-01 | Component `ci.sh` scripts and minimal skeletons | 5 | **Specced, ready** | **Blocks the first code story.** Also closes P1-00 criterion 4 and P1-01's residual item |
+| CHORE-01 | Component `ci.sh` scripts and minimal skeletons | 5 | **Done** (S-015) | `firmware/` and `simulator/` only. Firmware job runs in about 3 minutes, so the 15-minute timeout stood. cppcheck left advisory and Zephyr-tree caching not added — both need a workflow change, so each is its own story |
 
 Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, renaming `gitattributes` to `.gitattributes`, and deciding the fate of `gateway/`.
 

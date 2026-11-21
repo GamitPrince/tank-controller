@@ -1,0 +1,4 @@
+# Pinned so CI and developer machines agree. Bump deliberately, in its own
+# commit. The Zephyr revision itself is pinned in west.yml, not here.
+west==1.2.0
+gcovr==8.2

@@ -14,6 +14,7 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 - ADR-0007: cloud architecture — managed AWS services, IoT Core as broker, Tiger Cloud for readings, with three gates before any account is opened or paid for (#15).
 - ADR-0008: backend and dashboard — FastAPI backend, TypeScript and React dashboard, Amazon Cognito login, append-only audit trail, server-sent events (#16).
 - ADR-0009: CI and deployment — Terraform or OpenTofu blueprints, test and live copies, OIDC login to AWS, free GitHub security set on every pull request (#17).
+- `simulator/ci.sh` and `firmware/ci.sh`, the first component CI scripts, so the 80% line-coverage gate measures real code instead of passing on empty folders (#32). The simulator gets the `tanksim` Python package with pytest and ruff; the firmware gets ADR-0003's four layers (`hardware/`, `measurement/`, `record/`, `communications/`), a C11 measurement module with a ztest suite run by Twister on `native_sim`, `west.yml` pinning Zephyr 4.5.0, and gcovr filtered to `src/` so coverage counts the hardware layer too. Both report an out-of-range reading rather than clamping it. `gateway/` deliberately gets no script: it is obsolete under ADR-0004.
 
 ### Changed
 
