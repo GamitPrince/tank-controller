@@ -9,7 +9,13 @@
 # While a component has no code yet, it passes. As soon as it has any file
 # other than a placeholder or Markdown, it MUST have a ci.sh, so a component
 # can never go untested without anyone noticing.
+#
+# On Windows, "python3" is often a Microsoft Store stub. Override the
+# interpreter instead of editing this script:
+#   PYTHON=python bash scripts/ci/run-component.sh simulator
 set -euo pipefail
+
+PYTHON="${PYTHON:-python3}"
 
 component="${1:?usage: run-component.sh <component>}"
 min="${COVERAGE_MIN:-80}"
@@ -26,7 +32,7 @@ if [ -f "$component/ci.sh" ]; then
     echo "::error::$component/ci.sh must write $component/coverage.xml (Cobertura XML)."
     exit 1
   fi
-  python3 scripts/check_coverage.py "$component/coverage.xml" --min "$min" --name "$component"
+  "$PYTHON" scripts/check_coverage.py "$component/coverage.xml" --min "$min" --name "$component"
 else
   extra="$(find "$component" -type f ! -name '.gitkeep' ! -name '*.md' | head -n 1)"
   if [ -n "$extra" ]; then
