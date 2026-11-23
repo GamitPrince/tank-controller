@@ -3,6 +3,7 @@
 #include "max31865.h"
 
 #include <errno.h>
+#include <stddef.h>
 
 /* The RTD register's ADC code is 15 bits wide, bits 15:1 of the 16-bit register. */
 #define TANK_MAX31865_ADC_CODE_BITS 15

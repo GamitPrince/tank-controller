@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <stddef.h>
 
 /* IEC 60751 coefficients for a platinum RTD with alpha = 0.003851. */
 #define TANK_PT100_COEFF_A 3.9083e-3f
