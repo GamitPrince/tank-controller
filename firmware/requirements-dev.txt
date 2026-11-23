@@ -1,8 +1,8 @@
 # Pinned so CI and developer machines agree. Bump deliberately, in its own
 # commit. The Zephyr revision itself is pinned in west.yml, not here.
-west==1.2.0
-gcovr==8.2
+west==1.5.0
+gcovr==8.8
 # Read by firmware/scripts/gen_safety_signals.py, which turns the signal list in
 # interfaces/ into a C table at build time. Zephyr's own requirements also pull
 # PyYAML in, but the generator must work without them.
-PyYAML==6.0.2
+PyYAML==6.0.3
