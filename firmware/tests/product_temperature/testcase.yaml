@@ -1,0 +1,7 @@
+tests:
+  measurement.product_temperature:
+    tags:
+      - measurement
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
