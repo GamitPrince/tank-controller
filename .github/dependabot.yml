@@ -1,0 +1,90 @@
+# Dependabot version updates (ADR-0009: the free GitHub security set).
+#
+# Alerts were already on, which is how the four cbor2 and pytest advisories of
+# 21 Nov 2026 (S-026) were found — but alerts only tell you. Without this file
+# nothing offers the bump, so a dependency sits flagged until a human notices
+# the popup. This file adds the scheduled check.
+#
+# READ THIS BEFORE EXPECTING A DEPENDABOT PULL REQUEST TO MERGE (S-027):
+# it cannot, today. `pr-policy` requires a branch named
+# feature|bugfix|hotfix/S-xxx-..., a `Closes #N` line pointing at an open story
+# issue, and all seven checklist items ticked. Dependabot branches are always
+# named dependabot/..., and it writes neither a story link nor the checklist, so
+# the check fails and the ruleset blocks the merge; there are no bypass actors.
+# The `commit-message` prefixes below at least make the titles satisfy the title
+# rule, so only the branch, story-link and checklist rules fail.
+#
+# So treat a Dependabot pull request as a prepared notification, not as
+# something to merge: read its diff and changelog links, then make the change on
+# a story branch the way S-026 did. Letting `pr-policy` exempt dependabot/*
+# branches would need an edit to a CODEOWNERS policy file and is the tech lead's
+# call, tracked separately.
+#
+# Security updates (the ones Dependabot raises by itself for an advisory) are a
+# repository setting, not part of this file, and they behave the same way.
+
+version: 2
+
+updates:
+  # The simulator's pinned test and runtime dependencies. This is where all four
+  # of the 21 Nov 2026 advisories were.
+  - package-ecosystem: pip
+    directory: /simulator
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 2
+    labels:
+      - chore
+      - simulator
+    commit-message:
+      prefix: "fix(simulator)"
+    groups:
+      # One pull request for the component rather than one per package, so a
+      # quiet week is one notification and not six.
+      simulator-dependencies:
+        patterns:
+          - "*"
+
+  # The firmware's build tooling: west, gcovr and PyYAML. The Zephyr revision
+  # itself is pinned in firmware/west.yml, which Dependabot does not read.
+  - package-ecosystem: pip
+    directory: /firmware
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 2
+    labels:
+      - chore
+      - firmware
+    commit-message:
+      prefix: "fix(firmware)"
+    groups:
+      firmware-build-tools:
+        patterns:
+          - "*"
+
+  # The actions used by the three workflows. Actions are restricted to
+  # GitHub-owned ones (AGENTS.md section 3), so this only ever offers a new
+  # version of an action already in use, never a new supplier.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 2
+    labels:
+      - chore
+      - docs
+    commit-message:
+      prefix: "chore(docs)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
