@@ -23,7 +23,7 @@
  * parameter called `channel` would turn `.channel = (channel)` into
  * `.1 = (1)`, which does not compile.
  */
-#define TANK_ALARM_INPUT_ENTRY(arg_name, arg_id, arg_channel, arg_sense, arg_debounce, arg_scan) \
+#define TANK_ALARM_INPUT_ENTRY(arg_name, arg_id, arg_channel, arg_sense, arg_debounce, arg_scan)   \
 	{                                                                                          \
 	    .signal_id = (arg_id),                                                                 \
 	    .channel = (arg_channel),                                                              \

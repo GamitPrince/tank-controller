@@ -88,8 +88,10 @@ ZTEST(safety_alarm_input, test_contract_comes_from_the_signal_list)
 			      config->signal_id);
 		zassert_not_equal(config->channel, 0, "signal %u has no channel",
 				  config->signal_id);
-		zassert_equal(config->debounce_ms, 200U, "signal %u does not use the 200 ms "
-			      "debounce decided for the alarm channels", config->signal_id);
+		zassert_equal(config->debounce_ms, 200U,
+			      "signal %u does not use the 200 ms "
+			      "debounce decided for the alarm channels",
+			      config->signal_id);
 		zassert_true(config->scan_interval_ms > 0, "signal %u has no scan interval",
 			     config->signal_id);
 		zassert_equal(tank_alarm_input_config_by_id(config->signal_id), config,
@@ -162,10 +164,9 @@ ZTEST(safety_alarm_input, test_several_alarms_asserted_at_once_stay_independent)
 		const struct tank_level_switch_status status =
 		    status_at(&readers[i], confirmed_at[i]);
 
-		zassert_equal(status.state,
-			      expect_asserted ? TANK_SWITCH_ASSERTED : TANK_SWITCH_CLEAR,
-			      "signal %u was affected by another channel's state",
-			      status.signal_id);
+		zassert_equal(
+		    status.state, expect_asserted ? TANK_SWITCH_ASSERTED : TANK_SWITCH_CLEAR,
+		    "signal %u was affected by another channel's state", status.signal_id);
 	}
 }
 
@@ -212,8 +213,7 @@ ZTEST(safety_alarm_input, test_chatter_shorter_than_the_debounce_window_confirms
 		const struct tank_level_switch_status status = status_at(&sw, now);
 
 		zassert_equal(status.state, TANK_SWITCH_UNKNOWN,
-			      "signal %u confirmed a state from brief chatter",
-			      status.signal_id);
+			      "signal %u confirmed a state from brief chatter", status.signal_id);
 		zassert_false(status.live, "a chattering channel has no live state");
 	}
 }
@@ -250,7 +250,8 @@ ZTEST(safety_alarm_input, test_a_stuck_alarm_stays_asserted_and_then_goes_stale)
 		status = status_at(&sw, stale_at);
 		zassert_equal(status.state, TANK_SWITCH_ASSERTED,
 			      "signal %u's last known state must still be asserted, never "
-			      "silently replaced", status.signal_id);
+			      "silently replaced",
+			      status.signal_id);
 		zassert_false(status.live, "a stale state must never be shown as live");
 	}
 }
