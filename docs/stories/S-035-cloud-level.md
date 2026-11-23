@@ -1,7 +1,7 @@
 # S-035: Cloud level %, volume and mass calculation
 
 - Story ID: S-035 (issue #74).
-- Epic: cloud (not on the original Phase 1 Story Cards; split from P1-04, same as P1-27 was split from the digital channel inventory). Points: `[Confirm]`. Priority: Must. Component: backend. Review flag: one non-author collaborator (not a safety path; no EE approval needed).
+- Epic: cloud (not on the original Phase 1 Story Cards; split from P1-04, same as P1-27 was split from the digital channel inventory). Points: 5 (tech lead, 2026-11-23 — matches P1-04's original estimate before the split). Priority: Must. Component: backend. Review flag: one non-author collaborator (not a safety path; no EE approval needed).
 - **This story is the cloud half of P1-04.** P1-04 (S-034, PR #73, merged) now reads and sends the radar (signal 1001) and pressure (signal 1002) loop currents in mA, with a quality flag, and does nothing else. Everything below was carved out of P1-04's acceptance criteria by the tech lead's resolution of 2026-11-23, recorded in `docs/stories/P1-04-radar-level.md`.
 
 ## Goal
@@ -91,7 +91,7 @@ Pressure level (signal 1002) is stored and made available as a **raw secondary v
 Backend code lives in a new top-level `backend/` folder (tech lead, 2026-11-23), alongside `firmware/`, `dashboard/`, `simulator/`, `hardware/`, `interfaces/`. This story adds only the calculation module, its tests and `backend/ci.sh`; it does not add API endpoints, a database connection, a container build, or any deployment — those belong to later backend stories (API, ingest, auth) that ADR-0007/0008 still list as "to be created."
 
 ## Test plan
-All tests run against the calculation module directly (Python, pytest), with no cloud account and no real database — `[Confirm]` whether a geometry table and density table are represented as in-memory fixtures/dataclasses for this story's tests, or as a local file format; either way, no AWS resource is touched.
+All tests run against the calculation module directly (Python, pytest), with no cloud account and no real database. **Resolved by the tech lead, 2026-11-23:** geometry and density tables are represented as in-memory Python fixtures/dataclasses for this story's tests, not a file format — no AWS resource is touched either way.
 
 Cases:
 - A nominal radar current in range, a geometry table with a few strapping points spanning a spherical-bottom-like curve, all six PT100s good: level %, volume and mass computed, calculation version recorded, matching a hand-calculated expected value within 0.5%.
@@ -125,7 +125,10 @@ P1-04 (S-034, merged) for the signals this story consumes (1001, 1002, 2001-2006
 - "No computed value" / out-of-range is an explicit `status` enum (`ok`, `fault`, `out_of_range`, `stale`) in the stored record.
 - The radar transducer's current-to-level range is per-tank configuration (already a field on the geometry table row, not a system constant); for the pilot it comes from that tank's own known dimensions as a test fixture, with the real figure supplied at each site's commissioning.
 - Populating real product density data is tracked as its own story, S-037 (issue #77), not folded into S-035.
+- Story points: 5, matching P1-04's original estimate before the split.
+- Test fixtures: geometry and density tables are in-memory Python fixtures/dataclasses in this story's tests, not a file format.
 
 ## Open questions
-- `[Confirm]` Story points — not estimated here.
 - `[Confirm]` Exact point spacing required through the heater-affected bottom zone to hit the 0.5% target — a number, not just "denser," still needs a value once a real tank's heater geometry is known.
+- `[Confirm]` Transducer range per site, populated at commissioning (see "Level %" and the geometry table schema) — intentionally not a single fixed value.
+- `[Confirm]` NAMUR NE43 fault limits (3.6 mA / 21 mA) — P1-04's own open item, only referenced here.
