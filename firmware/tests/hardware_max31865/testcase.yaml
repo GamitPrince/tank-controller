@@ -1,0 +1,7 @@
+tests:
+  hardware.max31865:
+    tags:
+      - hardware
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
