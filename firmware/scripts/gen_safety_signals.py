@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Generate the safety-chain switch table from ``interfaces/signals-v1.yaml``.
+"""Generate a safety-path signal table from ``interfaces/signals-v1.yaml``.
 
-Story S-022 (P1-05). ADR-0004 decision 9 made the versioned YAML signal list
-the single definition of every signal, so firmware must not keep a second copy
-of an id, a channel number, a contact sense or a debounce figure. This script
-turns the signals the list marks ``read_by_story: P1-05`` into one C header,
-written into the build directory at build time and never committed.
+Story S-022 (P1-05), extended by S-031 (P1-09). ADR-0004 decision 9 made the
+versioned YAML signal list the single definition of every signal, so firmware
+must not keep a second copy of an id, a channel number, a contact sense or a
+debounce figure. This script turns the signals the list marks with a given
+``read_by_story`` into one C header, written into the build directory at
+build time and never committed.
 
 The header holds an X-macro list rather than finished C objects, so the
-firmware decides how to use the contract and adding a switch to the signal list
-needs no C change at all:
+firmware decides how to use the contract and adding a channel to the signal
+list needs no C change at all. The macro name depends on the story, per
+``STORY_TABLES`` below:
 
     #define TANK_SAFETY_LEVEL_SWITCHES(X) \\
         X(LEVEL_SWITCH_HIGH_HIGH, 3001, 1, TANK_CONTACT_NORMALLY_CLOSED, 200, 50)
@@ -17,13 +19,13 @@ needs no C change at all:
 Everything the list says about these channels is read, nothing is defaulted: a
 missing or unexpected field fails the build instead of producing a table that
 quietly disagrees with the contract. In particular a signal that is not
-read-only, not boolean, not an optocoupler input or not in the safety-chain
-class is refused, because Phase 1 reads the hardwired safety chain and never
-writes to it (AGENTS.md section 1).
+read-only, not boolean, not an optocoupler input or not on the safety path is
+refused, because Phase 1 only ever reads these channels, never writes to them
+(AGENTS.md section 1).
 
 Usage:
     python gen_safety_signals.py --signals interfaces/signals-v1.yaml \\
-        --output build/generated/tank_safety_signals.h
+        --output build/generated/tank_safety_signals.h --story P1-09
 """
 
 from __future__ import annotations
@@ -43,8 +45,18 @@ SIGNAL_GROUP = "digital"
 #: (3 to 9) are P1-27, each with its own table.
 STORY = "P1-05"
 
-#: The class the signal list gives the hardwired safety chain.
-REQUIRED_CLASS = "safety_chain"
+#: The X-macro table name and its companion count macro, per story. Keep
+#: P1-05's names unchanged (other code already depends on them); add an entry
+#: here for every story this generator is asked to serve.
+STORY_TABLES = {
+    "P1-05": ("TANK_SAFETY_LEVEL_SWITCHES", "TANK_SAFETY_LEVEL_SWITCH_COUNT"),
+    "P1-09": ("TANK_SAFETY_ALARM_INPUTS", "TANK_SAFETY_ALARM_INPUT_COUNT"),
+}
+
+#: Classes that are safety-chain or alarm reads and so belong in
+#: firmware/src/safety/ (AGENTS.md section 5), as opposed to equipment-status
+#: channels, which are not safety reads.
+ALLOWED_CLASSES = {"safety_chain", "alarm"}
 
 #: The input device these channels come from (ADR-0002: 16-channel
 #: optocoupler digital inputs, status-only, input-only by construction).
@@ -67,6 +79,7 @@ REQUIRED_FIELDS = (
     "contact_sense",
     "debounce_ms",
     "scan_interval_ms",
+    "safety_path",
 )
 
 HEADER_TEMPLATE = """\
@@ -85,9 +98,9 @@ HEADER_TEMPLATE = """\
 
 #define TANK_SIGNAL_LIST_VERSION {version}
 
-#define TANK_SAFETY_LEVEL_SWITCH_COUNT {count}
+#define {count_macro} {count}
 
-#define TANK_SAFETY_LEVEL_SWITCHES(X){entries}
+#define {table_macro}(X){entries}
 
 #endif /* TANK_SAFETY_SIGNALS_H_ */
 """
@@ -114,9 +127,16 @@ def _check_phase_1_rules(entry: dict[str, Any]) -> None:
             "safety chain and never writes to it, so this is a phase change, "
             "not a signal-list edit."
         )
-    if entry["class"] != REQUIRED_CLASS:
+    if entry["safety_path"] is not True:
         raise SignalListError(
-            f"signal {signal_id} has class {entry['class']!r}, expected {REQUIRED_CLASS!r}"
+            f"signal {signal_id} does not have safety_path: true. This generator "
+            "only ever reads channels on the hardwired safety path (AGENTS.md "
+            "section 1); an equipment-status channel belongs to a different story."
+        )
+    if entry["class"] not in ALLOWED_CLASSES:
+        raise SignalListError(
+            f"signal {signal_id} has class {entry['class']!r}, expected one of "
+            f"{sorted(ALLOWED_CLASSES)}"
         )
     if entry["unit"] != "bool":
         raise SignalListError(f"signal {signal_id} is not a boolean switch state")
@@ -160,7 +180,15 @@ def _load_version(raw: dict[str, Any], source: Path) -> int:
 
 
 def render_header(signals_path: Path, story: str = STORY) -> str:
-    """Return the C header for the switches ``story`` reads."""
+    """Return the C header for the channels ``story`` reads."""
+    tables = STORY_TABLES.get(story)
+    if tables is None:
+        raise SignalListError(
+            f"no generated macro name is defined for story {story!r}; "
+            "add one to STORY_TABLES"
+        )
+    table_macro, count_macro = tables
+
     raw = yaml.safe_load(signals_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
         raise SignalListError(f"{signals_path} does not contain a YAML mapping")
@@ -181,6 +209,8 @@ def render_header(signals_path: Path, story: str = STORY) -> str:
         source_name=signals_path.name,
         version=_load_version(raw, signals_path),
         story=story,
+        table_macro=table_macro,
+        count_macro=count_macro,
         count=len(macros),
         entries=" \\\n" + " \\\n".join(macros),
     )
