@@ -1,0 +1,7 @@
+tests:
+  safety.alarm_input:
+    tags:
+      - safety
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
