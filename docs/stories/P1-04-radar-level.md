@@ -1,6 +1,6 @@
 # P1-04: Read radar level; compute level %, volume and mass
 
-- Story ID: `[Confirm]` — not yet issued.
+- Story ID: S-034 (issue #72).
 - Epic: E2 Field sensing. Points: 5. Priority: Must. Component: firmware. Review flag: REG (adds signals).
 
 ## Goal
@@ -46,7 +46,11 @@ The secondary pressure level **is** measured, on AD4111 channel 2. Per the card'
 ## Out of scope
 Any write to the AD4111 beyond configuration. Comparing radar against pressure level (Phase 2).
 
-## Open questions
-- `[Confirm]` Split firmware and cloud as above?
-- `[Confirm]` Where does the geometry table live, and who owns it?
-- `[Confirm]` Does this story also read pressure level, or does that get its own story?
+## Resolved by the tech lead, 2026-11-23
+- The firmware/cloud split is confirmed: firmware reads, flags and sends the loop current in mA; level %, volume, mass, density correction and the 0.5% criterion go to a new cloud story.
+- The tank geometry table lives in the cloud and the tech lead owns it.
+- This story reads both radar (AD4111 channel 1) and pressure level (channel 2).
+
+## Firmware choices to confirm with the EE
+- `[Confirm]` AD4111 current-input full scale and coding (assumed unipolar, 25 mA full scale; the figure is a parameter of the decode).
+- `[Confirm]` NAMUR NE43 failure limits (below 3.6 mA, above 21 mA are `fault`).

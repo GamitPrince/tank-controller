@@ -1,0 +1,7 @@
+tests:
+  hardware.ad4111:
+    tags:
+      - hardware
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
