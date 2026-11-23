@@ -15,10 +15,10 @@
 
 #define AGREEMENT_LIMIT_MS 1000U
 
-static const uint8_t BOOT_ID_A[TANK_BOOT_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8,
-						     9, 10, 11, 12, 13, 14, 15, 16};
+static const uint8_t BOOT_ID_A[TANK_BOOT_ID_LEN] = {1, 2,  3,  4,  5,  6,  7,  8,
+						    9, 10, 11, 12, 13, 14, 15, 16};
 static const uint8_t BOOT_ID_B[TANK_BOOT_ID_LEN] = {16, 15, 14, 13, 12, 11, 10, 9,
-						     8, 7, 6, 5, 4, 3, 2, 1};
+						    8,	7,  6,	5,  4,	3,  2,	1};
 
 static struct tank_boot_time bt_for(const uint8_t boot_id[TANK_BOOT_ID_LEN])
 {

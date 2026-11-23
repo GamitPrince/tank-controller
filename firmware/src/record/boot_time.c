@@ -66,7 +66,7 @@ int tank_boot_time_record_sync_failure(struct tank_boot_time *bt)
 }
 
 int tank_boot_time_stamp(const struct tank_boot_time *bt, uint32_t up_ms,
-			  struct tank_boot_time_stamp *out)
+			 struct tank_boot_time_stamp *out)
 {
 	if (!initialised(bt) || out == NULL) {
 		return -EINVAL;

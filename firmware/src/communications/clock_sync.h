@@ -55,7 +55,8 @@ struct tank_clock_sync {
  * retry_interval_ms is zero.
  */
 int tank_clock_sync_init(struct tank_clock_sync *cs, const struct tank_clock_sync_config *config,
-			 struct tank_boot_time *boot_time, tank_sntp_sync_fn sync_fn, void *sync_ctx);
+			 struct tank_boot_time *boot_time, tank_sntp_sync_fn sync_fn,
+			 void *sync_ctx);
 
 /*
  * Call periodically (e.g. from the main loop) with the current uptime.
@@ -86,10 +87,10 @@ struct tank_health_clock_sync_warning_status {
 
 /* Returns 0, or -EINVAL if a pointer is NULL or cs was not initialised. */
 int tank_clock_sync_uptime_status(const struct tank_clock_sync *cs, uint32_t up_ms,
-				   struct tank_health_uptime_status *out);
+				  struct tank_health_uptime_status *out);
 
 /* Returns 0, or -EINVAL if a pointer is NULL or cs was not initialised. */
 int tank_clock_sync_warning_status(const struct tank_clock_sync *cs,
-				    struct tank_health_clock_sync_warning_status *out);
+				   struct tank_health_clock_sync_warning_status *out);
 
 #endif /* TANK_COMMUNICATIONS_CLOCK_SYNC_H_ */

@@ -17,8 +17,8 @@
 #define AGREEMENT_LIMIT_MS 1000U
 #define RETRY_INTERVAL_MS 5000U
 
-static const uint8_t BOOT_ID[TANK_BOOT_ID_LEN] = {1, 2, 3, 4, 5, 6, 7, 8,
-						   9, 10, 11, 12, 13, 14, 15, 16};
+static const uint8_t BOOT_ID[TANK_BOOT_ID_LEN] = {1, 2,	 3,  4,	 5,  6,	 7,  8,
+						  9, 10, 11, 12, 13, 14, 15, 16};
 
 struct fake_sync_ctx {
 	int result;
@@ -40,7 +40,7 @@ static int fake_sync(void *ctx_, uint64_t *epoch_ms_out)
 }
 
 static void init_all(struct tank_boot_time *bt, struct tank_clock_sync *cs,
-		      struct fake_sync_ctx *ctx)
+		     struct fake_sync_ctx *ctx)
 {
 	const struct tank_boot_time_config bt_config = {.agreement_limit_ms = AGREEMENT_LIMIT_MS};
 	const struct tank_clock_sync_config cs_config = {.retry_interval_ms = RETRY_INTERVAL_MS};

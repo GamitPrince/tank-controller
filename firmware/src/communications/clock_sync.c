@@ -18,7 +18,8 @@ static bool initialised(const struct tank_clock_sync *cs)
 }
 
 int tank_clock_sync_init(struct tank_clock_sync *cs, const struct tank_clock_sync_config *config,
-			 struct tank_boot_time *boot_time, tank_sntp_sync_fn sync_fn, void *sync_ctx)
+			 struct tank_boot_time *boot_time, tank_sntp_sync_fn sync_fn,
+			 void *sync_ctx)
 {
 	if (cs == NULL || config == NULL || boot_time == NULL || sync_fn == NULL ||
 	    config->retry_interval_ms == 0U) {
@@ -76,7 +77,7 @@ int tank_clock_sync_poll(struct tank_clock_sync *cs, uint32_t up_ms)
 }
 
 int tank_clock_sync_uptime_status(const struct tank_clock_sync *cs, uint32_t up_ms,
-				   struct tank_health_uptime_status *out)
+				  struct tank_health_uptime_status *out)
 {
 	if (!initialised(cs) || out == NULL) {
 		return -EINVAL;
@@ -89,7 +90,7 @@ int tank_clock_sync_uptime_status(const struct tank_clock_sync *cs, uint32_t up_
 }
 
 int tank_clock_sync_warning_status(const struct tank_clock_sync *cs,
-				    struct tank_health_clock_sync_warning_status *out)
+				   struct tank_health_clock_sync_warning_status *out)
 {
 	if (!initialised(cs) || out == NULL) {
 		return -EINVAL;

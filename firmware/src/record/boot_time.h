@@ -102,7 +102,7 @@ int tank_boot_time_record_sync_failure(struct tank_boot_time *bt);
  * Returns 0, or -EINVAL if a pointer is NULL or bt was not initialised.
  */
 int tank_boot_time_stamp(const struct tank_boot_time *bt, uint32_t up_ms,
-			  struct tank_boot_time_stamp *out);
+			 struct tank_boot_time_stamp *out);
 
 /* True while the last sync disagreed with the previous estimate by more than
  * the agreement limit. False before the first sync (nothing to disagree
