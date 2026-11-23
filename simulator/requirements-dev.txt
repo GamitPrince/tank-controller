@@ -2,12 +2,12 @@
 # cbor2 5.9.0 and pytest 9.0.3 are security floors, not preferences: see S-026
 # and the four Dependabot alerts it closes. pytest-cov 7 is required by
 # pytest 9. Do not pin any of the three lower again.
-pytest==9.0.3
+pytest==9.2.0
 pytest-cov==7.1.0
-ruff==0.8.4
+ruff==0.17.6
 
 # Runtime dependencies, pinned here as well so a CI run is reproducible. The
 # ranges that a consumer of the package gets are in pyproject.toml.
-cbor2==5.9.0
+cbor2==6.3.0
 PyYAML==6.0.3
 cddlparser==0.6.0

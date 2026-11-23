@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 # Runtime dependencies. Upper bounds keep a major release from arriving
 # unannounced; requirements-dev.txt pins the exact versions CI uses.
 dependencies = [
-  "cbor2>=5.6,<6",      # CBOR records (ADR-0004 decision 6)
+  "cbor2>=5.6,<7",      # CBOR records (ADR-0004 decision 6)
   "PyYAML>=6.0.1,<7",   # the YAML signal list (ADR-0004 decision 9)
   "cddlparser>=0.6,<1", # parsing interfaces/records.cddl; see tanksim/cddl.py
 ]
