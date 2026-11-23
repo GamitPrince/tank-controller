@@ -589,3 +589,19 @@ health:
     source:
       device: controller
     read_by_story: P1-14
+
+  - id: 9004
+    name: health_clock_sync_warning
+    description: >-
+      True while the device's two most recent SNTP syncs disagree by more
+      than the 1 s agreement limit (P1-15). The device raises this itself,
+      so it is visible even while the cloud link is down; it clears on the
+      next sync that agrees within the limit.
+    class: health
+    unit: bool
+    scale: 1
+    update_rate_ms: 60000
+    read_only: true
+    source:
+      device: controller
+    read_by_story: P1-15
