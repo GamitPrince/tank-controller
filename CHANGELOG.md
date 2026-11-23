@@ -28,6 +28,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 - `AGENTS.md` aligned with the rule above; it had asserted the old rule in three places while stating the new one in section 3 (#22).
 - The electrical engineer (`@gamitriyan-del`) added as a code owner of `interfaces/`, `.github/` and `scripts/`, so that approvals on those paths do not depend on a single collaborator. Safety paths are unchanged and still require the EE.
 
+- Simulator pins raised to clear four Dependabot alerts (S-026): `cbor2` 5.6.5 to 5.9.0, which closes two high and one moderate decoder advisory, and `pytest` 8.3.4 to 9.0.3 with `pytest-cov` 7.1.0, which pytest 9 requires. Real exposure in the simulator was low — its one `cbor2.loads` call decodes payloads it produced itself — but the cloud backend of P1-17 will decode real device CBOR off the broker, which is untrusted input, so it starts from a patched decoder. `pyproject.toml` needed no change: `cbor2>=5.6,<6` already admits 5.9.0.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
