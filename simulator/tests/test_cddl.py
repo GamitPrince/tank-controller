@@ -145,9 +145,7 @@ def test_a_reference_to_a_missing_rule_is_refused_at_compile_time():
 def test_a_supported_subset_still_compiles():
     # Type choices, nested maps, arrays with bounded occurrence and exclusive
     # ranges are all inside the subset, so they must work.
-    schema = Schema(
-        "start = {a: int / tstr, ? b: [1*2 inner]}\n" "inner = {c: bool}\n" "small = uint\n"
-    )
+    schema = Schema("start = {a: int / tstr, ? b: [1*2 inner]}\ninner = {c: bool}\nsmall = uint\n")
     schema.validate({"a": "text", "b": [{"c": True}]})
     schema.validate({"a": 3})
     with pytest.raises(SchemaError):
