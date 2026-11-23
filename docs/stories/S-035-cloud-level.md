@@ -18,7 +18,7 @@ Phase 1. Read-only with respect to the plant: this story only computes and store
 - **ADR-0008 decision 3:** tank settings (which includes the geometry table) are an admin-role permission; changes go through the backend, which checks role and customer/plant scope on every request.
 - **ADR-0008 decision 4:** tank settings changes are written to the append-only audit trail (who, what, when, value before and after), also copied daily to S3 with Object Lock.
 - **P1-04 resolution, 2026-11-23:** the tank geometry table lives in the cloud and the tech lead owns it. This story reads radar level (signal 1001) only for the level/volume/mass calculation; pressure level (signal 1002) is a raw secondary value, not an input to this calculation (see "Pressure level" below).
-- **Tech lead, 2026-11-23 (this story):** the pilot tank is a vertical tank with a spherical bottom head, not a plain cylinder. The geometry table is therefore a strapping-table model (level height → volume), not a closed-form cylinder formula, so it can represent the spherical bottom and any other shape a later tank needs without a schema change.
+- **Tech lead, 2026-11-23 (this story):** the pilot tank is a vertical tank with a curved (dished) bottom head and internal heating coils near the bottom, not a plain cylinder. The geometry table is therefore a strapping-table model (level height → volume), not a closed-form cylinder formula, so it can represent any tank's bottom-zone shape without a schema change. **Tank geometry varies customer to customer** (diameter, height, head shape, heater design, or no heater at all) — the schema below is generic for exactly this reason; each customer's own calibration data populates its own `tank_id` row, never a value hardcoded for one tank.
 - **Tech lead, 2026-11-23 (this story):** no product density-vs-temperature reference data exists yet. This story defines the schema and the lookup/calculation method only; populating real density data for a specific product is explicitly out of scope (see "Out of scope").
 - **Tech lead, 2026-11-23 (this story):** backend code lives in a new top-level `backend/` component (not under `dashboard/`), alongside `firmware/`, `dashboard/`, `simulator/`. It needs its own `backend/ci.sh` (pytest + coverage, per ADR-0008 decision 6) to pass the 80% coverage gate — adding that skeleton is in scope here since without it this story's code cannot pass CI.
 
@@ -39,7 +39,7 @@ Level % is derived from the radar loop current (signal 1001, `level_radar_loop_c
 - Loop current is first checked against the firmware's own fault flagging: a reading already flagged `fault` (below 3.6 mA / above 21 mA, `[Confirm]` in P1-04) and any input `quality` flag other than good from the record envelope are both treated as "no computed value" (see Quality handling).
 
 ### 2. Volume: strapping-table geometry model
-The geometry table maps level height to volume directly (a strapping table), rather than a closed-form formula, so it can represent the pilot tank's vertical cylinder with a spherical bottom head, and any future tank shape, without a schema change.
+The geometry table maps level height to volume directly (a strapping table), rather than a closed-form formula, so it can represent the pilot tank's dished-bottom, coil-heated vertical cylinder, and any other customer's tank shape, without a schema change.
 
 Proposed schema (table per tank, owned by the tech lead, stored in the cloud database per ADR-0007 decision 4):
 
@@ -49,13 +49,14 @@ Proposed schema (table per tank, owned by the tech lead, stored in the cloud dat
 | `version` | integer, monotonically increasing | bumped on every edit; see "Versioning and audit" |
 | `effective_from` | timestamp | when this version takes effect for new calculations |
 | `transducer_range_low_mm` / `transducer_range_high_mm` | numeric | per-tank configuration, not a system constant (resolved 2026-11-23 — see "Resolved by the tech lead" below); `[Confirm]` per site, populated at commissioning |
-| `points[]` | list of `(height_mm, volume_l)` | strapping-table rows, monotonically increasing in both fields; interpolation is linear between points; **denser points are mandatory through the heater-affected bottom zone** (resolved 2026-11-23) |
-| `heater_zone_top_mm` | numeric | height up to which the base heater displaces volume; the table must carry noticeably closer points below this height than above it |
+| `points[]` | list of `(height_mm, volume_l)` | strapping-table rows, monotonically increasing in both fields; interpolation is linear between points |
 | `max_height_mm` | numeric | tank full height, for out-of-range detection |
 
 Volume at a given level height is linear interpolation between the two bracketing `points` rows. A height below the lowest point or above `max_height_mm` is out-of-range (see Quality handling), not extrapolated.
 
-**Resolved by the tech lead, 2026-11-23:** the strapping table is always supplied as a finished list of points, never generated by this backend from parametric dimensions. The pilot tank has a base heater fitted at the bottom that displaces volume, so below `heater_zone_top_mm` the volume-to-height relationship is not even the spherical-head formula, let alone a cylinder — it depends on the heater's physical shape and position, which only a supplied table (from the tech lead or a tank-geometry vendor calculation) can capture. Above the heater zone, height and volume are consistent (a plain cylinder), so the table can use wider point spacing there. A parametric generator is therefore not viable for this tank shape and is dropped, not deferred.
+**Resolved by the tech lead, 2026-11-23, refined after reviewing a real calibration chart for the pilot tank:** the strapping table is always supplied as a finished list of points, never generated by this backend from parametric dimensions — confirmed against real data, not just the spherical-head case originally assumed. Two separate physical causes make the bottom zone non-formulaic on the pilot tank: a dished/curved bottom head (a smoothly increasing cross-section near the bottom, not a sharp cutoff) and internal heating coil pipes mounted at the bottom that independently displace volume. Neither a plain cylinder formula nor a spherical-head formula alone reproduces this; only a supplied table does. **The real chart uses one uniform point spacing across the entire height (not a sparser table with extra density only near the bottom)** — this spec drops the earlier "denser points near the bottom" rule (and the `heater_zone_top_mm` field) in favour of simply requiring *sufficient, consistent* resolution across the whole table, since that is what a real calibration actually looks like and is simpler to validate. The 0.5% accuracy criterion (below) is the real test of "sufficient," not a point-density rule. A parametric generator is not viable for tanks with this kind of bottom shape and is dropped, not deferred — **but tank geometry varies customer to customer**, so a future, simpler tank (flat-bottomed, no internal coils) is not precluded from also using a supplied table; the schema does not assume any particular shape.
+
+Real tank-specific calibration data (the actual height/volume figures, tank dimensions, and any supplied chart) is customer data and must never be committed to this public repo, matching AGENTS.md section 3's rule on hardware schematics and customer data. Each customer's figures are entered directly into the cloud geometry table (admin role, see "Geometry table" below) from their own calibration document — not staged as a file in this repository at any point.
 
 ### 3. Mass: temperature-corrected density
 Mass = volume × density, where density is looked up from a density-vs-temperature reference table for the tank's configured product, at a single representative product temperature derived from the six PT100 readings (signals 2001-2006).
@@ -94,7 +95,7 @@ Backend code lives in a new top-level `backend/` folder (tech lead, 2026-11-23),
 All tests run against the calculation module directly (Python, pytest), with no cloud account and no real database. **Resolved by the tech lead, 2026-11-23:** geometry and density tables are represented as in-memory Python fixtures/dataclasses for this story's tests, not a file format — no AWS resource is touched either way.
 
 Cases:
-- A nominal radar current in range, a geometry table with a few strapping points spanning a spherical-bottom-like curve, all six PT100s good: level %, volume and mass computed, calculation version recorded, matching a hand-calculated expected value within 0.5%.
+- A nominal radar current in range, a geometry table with strapping points spanning a non-linear bottom-zone curve (dished head and/or coil displacement), uniformly spaced, all six PT100s good: level %, volume and mass computed, calculation version recorded, matching a hand-calculated expected value within 0.5%.
 - Radar current flagged `fault`: no computed value for level %, volume or mass; state is distinguishable from out-of-range.
 - Radar current in range but corresponding level height outside the geometry table's `points` span (or above `max_height_mm`): out-of-range, not extrapolated.
 - One PT100 in a pair faulted, its partner good: that level's temperature comes from the surviving sensor alone; mass still computed.
@@ -117,8 +118,8 @@ Cases:
 P1-04 (S-034, merged) for the signals this story consumes (1001, 1002, 2001-2006). No dependency on P1-17 (cloud ingest) — this story's calculation is testable standalone, as the test plan above describes.
 
 ## Resolved by the tech lead, 2026-11-23 (S-036)
-- Strapping table is always supplied as finished points; never generated here from parametric dimensions, because the base heater at the bottom displaces volume in a way no formula captures.
-- The table must carry denser points through the heater-affected bottom zone (below `heater_zone_top_mm`) than above it.
+- Strapping table is always supplied as finished points; never generated here from parametric dimensions. Confirmed against a real calibration chart: the pilot tank's bottom zone is non-formulaic for two separate reasons (a dished/curved bottom head, and internal heating coil pipes), not one.
+- **Revised after reviewing that chart:** no mandatory "denser near the bottom" rule or `heater_zone_top_mm` field. Real calibration data uses one uniform point spacing across the whole table; the 0.5% acceptance criterion is what actually proves a table is fine enough, not a point-density rule. Tank geometry (and whether a heater/coil zone exists at all) varies customer to customer, so the schema stays shape-agnostic.
 - Temperature combination: average each 180-degree PT100 pair, then arithmetic mean of whichever levels are valid.
 - The geometry-table and computed-record schemas belong in `interfaces/`, reviewed like the signal list.
 - End-to-end wiring to the simulator over MQTT is a follow-up ingest story, not part of S-035.
@@ -129,6 +130,6 @@ P1-04 (S-034, merged) for the signals this story consumes (1001, 1002, 2001-2006
 - Test fixtures: geometry and density tables are in-memory Python fixtures/dataclasses in this story's tests, not a file format.
 
 ## Open questions
-- `[Confirm]` Exact point spacing required through the heater-affected bottom zone to hit the 0.5% target — a number, not just "denser," still needs a value once a real tank's heater geometry is known.
 - `[Confirm]` Transducer range per site, populated at commissioning (see "Level %" and the geometry table schema) — intentionally not a single fixed value.
 - `[Confirm]` NAMUR NE43 fault limits (3.6 mA / 21 mA) — P1-04's own open item, only referenced here.
+- `[Confirm]` Whether a minimum number of strapping points (not a spacing rule) should be enforced per table as a basic sanity check, independent of the 0.5% criterion which can only be checked after the fact.
