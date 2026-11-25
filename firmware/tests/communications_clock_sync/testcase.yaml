@@ -1,0 +1,7 @@
+tests:
+  communications.clock_sync:
+    tags:
+      - communications
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
