@@ -43,4 +43,4 @@ Every scan from `first` to `last` was dropped. Each dropped scan is counted in e
 Sending the gap record over MQTT (P1-12). Showing gaps on the dashboard (P1-21 to P1-23). The firmware size warning (recorded for P1-01). The simulator producing gap records: its own buffer never drops data.
 
 ## Open questions
-- `[Confirm]` The EE confirms the pilot board carries the standard W25Q64 (asked in the S-039 decisions).
+- Resolved 2026-11-25 (S-041, issue #85): the pilot board carries the standard Winbond W25Q64JV, confirmed from the tech lead's photos of the board.

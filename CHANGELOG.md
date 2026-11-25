@@ -26,6 +26,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - A gap record in `interfaces/records.cddl`, so the cloud learns about scans the outage buffer had to drop instead of seeing a silent hole (story S-040, issue #83). It carries the number of scans lost and the boot id, seq, uptime and, when known, real time of the first and last of them. The firmware log now records that range when it drops a sector, carrying an older undelivered gap forward so neither its count nor the start of the hole is lost. The simulator's schema checker accepts the new record, and a record that matches no alternative now says why each one failed. The tech lead's follow-up decisions on S-039 are recorded: firmware-update slots stay in internal flash with a 984 KB image budget, a full scan every 60 scans, the delivered position saved every 60 acknowledgements, and batches of 16 to 32.
 
+- Confirmed that the pilot FRDM-MCXN947 (board revision 170-90818 REV C) carries the standard Winbond W25Q64JV 8 MB NOR flash, so S-039's outage-buffer capacity calculation stands (story S-041, issue #85). Recorded in the S-039 and S-040 specs; the board photos stay in the private hardware location.
+
 ### Changed
 
 - Review rules now require one approval from a collaborator other than the author, replacing the "all three developers" rule for `interfaces/`. CODEOWNERS, the `interfaces-review` check and the pull request template were updated, and the `INTERFACE_REVIEWERS` variable set to `GamitPrince,prinz-assists` (#19). Verified end to end in #23: `interfaces-review` reports success on one non-author approval.

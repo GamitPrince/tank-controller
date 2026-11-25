@@ -16,7 +16,7 @@ Phase 1, read and store only.
 - **ADR-0004 decision 11:** SNTP plus boot-relative time with a boot ID and a "time not yet known" flag — so records buffered before the clock is known must still be placeable in time afterwards. Implemented by S-038 (`firmware/src/record/boot_time.h`).
 - **ADR-0004 decision 13:** the simulator can replay an outage with original timestamps.
 
-## Capacity calculation (done first, 2026-11-25) `[Confirm]`
+## Capacity calculation (done first, 2026-11-25)
 
 Inputs: `interfaces/signals-v1.yaml` has **23 signals at 1 s** (2 loop currents, 6 PT100s, 15 contacts) and 4 health signals at 60 s. Each reading carries `id`, `val`, `q` and `age`; each record carries `boot`, `seq`, `up`, `tk`, `t` (`interfaces/records.cddl`).
 
@@ -35,7 +35,7 @@ Flash available: Zephyr's `frdm_mcxn947` board layout puts MCUboot (80 KB) and b
 
 Result: 24 h fits **without the SD card** — about 3.5 days at the measured rate and about 1.2 days in the worst case. Flash wear is negligible (each sector erased roughly every 1 to 5 days, against about 100,000 erase cycles for NOR flash). ADR-0004's "about 8 MB shared with the firmware slots" is pessimistic for the default layout; if the firmware image ever outgrows a 984 KB internal slot and the slots move to external flash, this must be redone.
 
-Assumptions: the firmware slots stay in internal flash (**decided**, see below); the pilot board carries the standard W25Q64, not the NAND rework option in the board files (`[Confirm]` with the EE); the typical delta size is measured on generated data and still to be confirmed on real plant data (ADR-0004 "To verify").
+Assumptions: the firmware slots stay in internal flash (**decided**, see below); the pilot board carries the standard W25Q64, not the NAND rework option in the board files (**confirmed**, see below); the typical delta size is measured on generated data and still to be confirmed on real plant data (ADR-0004 "To verify").
 
 ## Resolved by the tech lead, 2026-11-25
 - **Capacity: accepted, no SD card** for Phase 1, on the assumptions above.
@@ -45,7 +45,7 @@ Assumptions: the firmware slots stay in internal flash (**decided**, see below);
 
 ## Resolved by the tech lead after merge, 2026-11-25 (recorded by S-040, issue #83)
 - **Firmware-update slots stay in internal flash**, so **984 KB is the firmware image budget**. A CI warning when the image nears it is wanted; there is no FRDM image to measure until the firmware app exists, so it is recorded as work for P1-01.
-- **The EE is to confirm** that the pilot board carries the standard W25Q64.
+- **The EE is to confirm** that the pilot board carries the standard W25Q64. **Confirmed 2026-11-25 (S-041, issue #85):** the tech lead's photos of the pilot FRDM-MCXN947 (board 170-90818 REV C) show a Winbond **W25Q64JV** at U7, the standard 8 MB NOR flash, so the capacity calculation stands. The photos are kept in the private hardware location, not this repo.
 - **App settings:** `full_interval` **60**, `ack_persist_interval` **60** (at most about a minute of duplicates after a power cut, which P1-17 must drop), batch size **16 to 32**, the exact value chosen when the app is built.
 - **Gap record:** the lost count plus the boot id, seq, up and (when known) t of the first and last lost scan, added to `interfaces/records.cddl` by S-040.
 
