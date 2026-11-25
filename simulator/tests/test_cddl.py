@@ -26,6 +26,23 @@ GOOD_RECORD = {
 }
 
 
+GOOD_LOST_SCAN = {"boot": bytes(range(16)), "seq": 7, "up": 7000, "tk": False}
+
+GOOD_GAP_RECORD = {
+    "v": 1,
+    "dev": "SIM-0001",
+    "gap": {
+        "lost": 120,
+        "first": GOOD_LOST_SCAN,
+        "last": {**GOOD_LOST_SCAN, "seq": 126, "up": 126000, "tk": True, "t": 1763683200},
+    },
+}
+
+
+def gap_replacing(**changes) -> dict:
+    return {**GOOD_GAP_RECORD, "gap": {**GOOD_GAP_RECORD["gap"], **changes}}
+
+
 def without(key: str) -> dict:
     return {k: v for k, v in GOOD_RECORD.items() if k != key}
 
@@ -69,9 +86,40 @@ def test_the_optional_unix_time_may_be_absent(schema):
     ],
 )
 def test_a_record_the_schema_forbids_is_rejected(schema, record, expected):
+    # Checked against the scan record rule for a precise message; the root
+    # rule, a choice of scan or gap record, must reject it too.
+    with pytest.raises(SchemaError, match=expected):
+        schema.validate(record, "record")
     with pytest.raises(SchemaError, match=expected):
         schema.validate(record)
     assert not schema.matches(record)
+
+
+def test_a_well_formed_gap_record_passes(schema):
+    schema.validate(GOOD_GAP_RECORD)
+    schema.validate(GOOD_GAP_RECORD, "gap-record")
+
+
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        (gap_replacing(lost=-1), "expected uint"),
+        (gap_replacing(first={**GOOD_LOST_SCAN, "boot": b"short"}), "size"),
+        (gap_replacing(last={k: v for k, v in GOOD_LOST_SCAN.items() if k != "up"}), "'up'"),
+        (gap_replacing(lost=1, extra=1), "unexpected member"),
+        ({k: v for k, v in GOOD_GAP_RECORD.items() if k != "gap"}, "'gap' is missing"),
+        ({**GOOD_GAP_RECORD, "r": GOOD_RECORD["r"]}, "unexpected member"),
+    ],
+)
+def test_a_gap_record_the_schema_forbids_is_rejected(schema, record, expected):
+    with pytest.raises(SchemaError, match=expected):
+        schema.validate(record, "gap-record")
+    assert not schema.matches(record)
+
+
+def test_a_record_mixing_scan_and_gap_keys_matches_neither(schema):
+    with pytest.raises(SchemaError, match="matches none"):
+        schema.validate({**GOOD_RECORD, "gap": GOOD_GAP_RECORD["gap"]})
 
 
 def test_a_bool_is_an_allowed_reading_value(schema):

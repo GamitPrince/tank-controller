@@ -8,7 +8,7 @@ and the `interfaces-review` check must be green.
 | File | What it defines | Decision |
 | --- | --- | --- |
 | [`signals-v1.yaml`](signals-v1.yaml) | Every Phase 1 signal the device sends: numeric id, name, unit, scale, update rate, read-only flag, and per digital channel the contact sense and debounce. | [ADR-0004](../docs/adr/ADR-0004-communications-architecture.md) decision 9 |
-| [`records.cddl`](records.cddl) | The CBOR scan record that carries those signals. | [ADR-0004](../docs/adr/ADR-0004-communications-architecture.md) decision 6 |
+| [`records.cddl`](records.cddl) | The CBOR scan record that carries those signals, and the gap record a device sends when its outage buffer had to drop scans that were never delivered (S-040). | [ADR-0004](../docs/adr/ADR-0004-communications-architecture.md) decisions 6 and 12 |
 
 The signal list **replaces the register map** (ADR-0004 decision 9). Any
 document still calling it a register map, including RSD FR-COM-01 and the `REG`
