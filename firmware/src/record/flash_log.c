@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <zephyr/drivers/flash.h>
+#include <zephyr/kernel.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
 #include <zephyr/sys/util.h>
@@ -343,6 +344,12 @@ static void scan_head(struct tank_flash_log *log)
 	log->head_off = (rc == -ENOENT) ? off : log->cfg.sector_size;
 }
 
+static void rewind_locked(struct tank_flash_log *log)
+{
+	log->read_pos = MAX(log->ack_pos - log->ack_pos % log->cfg.sector_size, log->tail_pos);
+	log->read_prev_valid = false;
+}
+
 int tank_flash_log_mount(struct tank_flash_log *log, const struct tank_flash_log_config *cfg)
 {
 	uint64_t ack = 0U;
@@ -365,8 +372,9 @@ int tank_flash_log_mount(struct tank_flash_log *log, const struct tank_flash_log
 	} else {
 		rc = open_sector(log, 0U);
 	}
+	k_mutex_init(&log->lock);
 	log->mounted = (rc == 0);
-	tank_flash_log_rewind(log);
+	rewind_locked(log);
 	return rc;
 }
 
@@ -385,15 +393,12 @@ static size_t encode(struct tank_flash_log *log, const struct tank_scan *scan, u
 	return len;
 }
 
-int tank_flash_log_append(struct tank_flash_log *log, const struct tank_scan *scan)
+static int append_locked(struct tank_flash_log *log, const struct tank_scan *scan)
 {
 	uint8_t type;
 	size_t len;
 	int rc;
 
-	if (log == NULL || scan == NULL || !log->mounted) {
-		return -EINVAL;
-	}
 	len = encode(log, scan, &type);
 	if (len > 0U && !fits(log, len)) {
 		rc = open_next_sector(log);
@@ -447,11 +452,8 @@ static bool to_item(struct tank_flash_log *log, const struct frame *fr, struct t
 	return false;
 }
 
-int tank_flash_log_read_next(struct tank_flash_log *log, struct tank_log_item *out)
+static int read_next_locked(struct tank_flash_log *log, struct tank_log_item *out)
 {
-	if (log == NULL || out == NULL || !log->mounted) {
-		return -EINVAL;
-	}
 	while (log->read_pos < write_pos(log)) {
 		uint32_t seq = (uint32_t)(log->read_pos / log->cfg.sector_size);
 		uint64_t start = log->read_pos;
@@ -476,9 +478,9 @@ int tank_flash_log_read_next(struct tank_flash_log *log, struct tank_log_item *o
 	return -ENODATA;
 }
 
-int tank_flash_log_ack(struct tank_flash_log *log, uint64_t end_pos)
+static int ack_locked(struct tank_flash_log *log, uint64_t end_pos)
 {
-	if (log == NULL || !log->mounted || end_pos > write_pos(log)) {
+	if (end_pos > write_pos(log)) {
 		return -EINVAL;
 	}
 	if (end_pos <= log->ack_pos) {
@@ -497,13 +499,57 @@ int tank_flash_log_ack(struct tank_flash_log *log, uint64_t end_pos)
 	return write_frame(log, ENTRY_ACK, ACK_PAYLD);
 }
 
+/* The public calls below each hold the log's lock for their whole length,
+ * so a scan thread can append while the uplink service reads and acks
+ * (S-049).
+ */
+int tank_flash_log_append(struct tank_flash_log *log, const struct tank_scan *scan)
+{
+	int rc;
+
+	if (log == NULL || scan == NULL || !log->mounted) {
+		return -EINVAL;
+	}
+	k_mutex_lock(&log->lock, K_FOREVER);
+	rc = append_locked(log, scan);
+	k_mutex_unlock(&log->lock);
+	return rc;
+}
+
+int tank_flash_log_read_next(struct tank_flash_log *log, struct tank_log_item *out)
+{
+	int rc;
+
+	if (log == NULL || out == NULL || !log->mounted) {
+		return -EINVAL;
+	}
+	k_mutex_lock(&log->lock, K_FOREVER);
+	rc = read_next_locked(log, out);
+	k_mutex_unlock(&log->lock);
+	return rc;
+}
+
+int tank_flash_log_ack(struct tank_flash_log *log, uint64_t end_pos)
+{
+	int rc;
+
+	if (log == NULL || !log->mounted) {
+		return -EINVAL;
+	}
+	k_mutex_lock(&log->lock, K_FOREVER);
+	rc = ack_locked(log, end_pos);
+	k_mutex_unlock(&log->lock);
+	return rc;
+}
+
 void tank_flash_log_rewind(struct tank_flash_log *log)
 {
 	if (log == NULL || !log->mounted) {
 		return;
 	}
-	log->read_pos = MAX(log->ack_pos - log->ack_pos % log->cfg.sector_size, log->tail_pos);
-	log->read_prev_valid = false;
+	k_mutex_lock(&log->lock, K_FOREVER);
+	rewind_locked(log);
+	k_mutex_unlock(&log->lock);
 }
 
 uint32_t tank_flash_log_lost_scans(const struct tank_flash_log *log)

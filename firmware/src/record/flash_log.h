@@ -23,7 +23,14 @@
  * size plus the offset inside the sector. They only ever grow.
  *
  * The flash device is passed in, so this runs on native_sim's flash
- * simulator in tests and on the external W25Q64 in real firmware.
+ * simulator in tests and on the external W25Q64 in real firmware. *
+ * Threads (S-049): append, read_next, ack and rewind each hold the log's
+ * mutex for the length of the call, so a scan thread may append while the
+ * uplink service forwards. Mount before starting either thread, and never
+ * mount while they run. A batch the forwarder has read but not yet acked
+ * can still be dropped by an append that fills the ring; it is then both
+ * delivered and counted in the gap, so the cloud may see a gap that
+ * overstates the loss, never one that hides it.
  */
 
 #ifndef TANK_RECORD_FLASH_LOG_H_
@@ -34,6 +41,7 @@
 #include <stdint.h>
 
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 
 #include "scan_codec.h"
 
@@ -109,6 +117,7 @@ struct tank_flash_log {
 	struct tank_scan drop_scan;
 	uint32_t lost_scans;
 	bool mounted;
+	struct k_mutex lock;
 	uint8_t frame[TANK_FLASH_LOG_FRAME_MAX];
 };
 
