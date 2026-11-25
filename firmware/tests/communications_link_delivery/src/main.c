@@ -1,6 +1,7 @@
 /*
  * Tests for delivery confirmation on the FRDM-to-ESP32 UART link (S-043):
- * the stop-and-wait sender.
+ * the stop-and-wait sender. The receiver and the joined link are in
+ * receiver.c.
  */
 
 #include <errno.h>

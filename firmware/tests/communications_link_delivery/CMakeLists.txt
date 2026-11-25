@@ -9,7 +9,9 @@ set(COMMS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/communications)
 
 target_sources(app PRIVATE
   src/main.c
+  src/receiver.c
   ${COMMS_DIR}/link_frame.c
+  ${COMMS_DIR}/link_receiver.c
   ${COMMS_DIR}/link_sender.c
 )
 
