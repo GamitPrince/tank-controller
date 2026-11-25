@@ -28,6 +28,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - Confirmed that the pilot FRDM-MCXN947 (board revision 170-90818 REV C) carries the standard Winbond W25Q64JV 8 MB NOR flash, so S-039's outage-buffer capacity calculation stands (story S-041, issue #85). Recorded in the S-039 and S-040 specs; the board photos stay in the private hardware location.
 
+- Frames for the FRDM-to-ESP32 UART link, the first slice of P1-12 (story S-042, issue #87, ADR-0004 decisions 4 and 5). `firmware/src/communications/link_frame` COBS-encodes a version, type, sequence number, payload of up to 1024 bytes and CRC-16, ending each frame with a `0x00` delimiter, and decodes byte by byte, rejecting a bad frame with its reason and resynchronising at the next delimiter. Message types are RECORD, DELIVERED, LINK_STATUS and TIME; none carries a command. It uses only standard C so the ESP32 can share it. Delivery confirmation (retransmit, duplicates) is the next slice.
+
 ### Changed
 
 - Review rules now require one approval from a collaborator other than the author, replacing the "all three developers" rule for `interfaces/`. CODEOWNERS, the `interfaces-review` check and the pull request template were updated, and the `INTERFACE_REVIEWERS` variable set to `GamitPrince,prinz-assists` (#19). Verified end to end in #23: `interfaces-review` reports success on one non-author approval.
