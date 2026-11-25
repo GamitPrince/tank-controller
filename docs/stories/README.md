@@ -38,7 +38,7 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 | P1-09 | Alarm and trip status | 3 | Ready after P1-03 | EE. **Scope cut: no over-temp, e-stop or fire/gas** |
 | P1-10 | Prove no write path to the safety chain | 2 | Not started | EE. **Record cannot live in this public repo** |
 | P1-11 | Poll over 4-20 mA, Modbus RTU and TCP | 5 | Not started | **Largely void: ADR-0004 removes the gateway and Modbus** |
-| P1-12 | Publish over MQTT | 3 | Not started | Component moves from gateway to firmware and ESP32 |
+| P1-12 | Publish over MQTT | 3 | **In progress** | Component moves from gateway to firmware and ESP32. Slice 1, UART link frames: S-042 ([spec](S-042-uart-link-framing.md)) |
 | P1-13 | OPC UA | 5 | Not started | **No ADR covers OPC UA. Decide Phase 1 or Phase 2** |
 | P1-14 | Buffer through an outage | 5 | Not started | Now the FRDM flash log, ADR-0004 decision 12 |
 | P1-15 | Clock sync | 2 | Not started | Now SNTP plus boot-relative time, ADR-0004 decision 11 |
