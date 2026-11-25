@@ -300,7 +300,9 @@ int tank_scan_decode_delta(const struct tank_scan *prev, const uint8_t *buf, siz
 	if (prev == NULL || buf == NULL || out == NULL || prev->count > TANK_SCAN_MAX_READINGS) {
 		return -EINVAL;
 	}
-	*out = *prev;
+	if (out != prev) {
+		*out = *prev;
+	}
 	out->seq = prev->seq + (uint32_t)get_uvar(&r);
 	out->up_ms = prev->up_ms + (uint32_t)get_uvar(&r);
 	out->tk = (get_byte(&r) & FLAGS_TK) != 0U;

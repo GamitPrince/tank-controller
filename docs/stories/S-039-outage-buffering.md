@@ -35,7 +35,7 @@ Flash available: Zephyr's `frdm_mcxn947` board layout puts MCUboot (80 KB) and b
 
 Result: 24 h fits **without the SD card** — about 3.5 days at the measured rate and about 1.2 days in the worst case. Flash wear is negligible (each sector erased roughly every 1 to 5 days, against about 100,000 erase cycles for NOR flash). ADR-0004's "about 8 MB shared with the firmware slots" is pessimistic for the default layout; if the firmware image ever outgrows a 984 KB internal slot and the slots move to external flash, this must be redone.
 
-`[Confirm]` assumptions: the firmware slots stay in internal flash; the pilot board carries the standard W25Q64 (not the NAND rework option in the board files); the typical delta size is an estimate until measured on simulator and then real data (ADR-0004 "To verify").
+Assumptions: the firmware slots stay in internal flash (**decided**, see below); the pilot board carries the standard W25Q64, not the NAND rework option in the board files (`[Confirm]` with the EE); the typical delta size is measured on generated data and still to be confirmed on real plant data (ADR-0004 "To verify").
 
 ## Resolved by the tech lead, 2026-11-25
 - **Capacity: accepted, no SD card** for Phase 1, on the assumptions above.
@@ -43,12 +43,18 @@ Result: 24 h fits **without the SD card** — about 3.5 days at the measured rat
 - **Always log first.** Every record is appended to the flash log when it is made, forwarded from the log, and marked sent when the cloud acknowledges it. There is **no buffer-start threshold**: the 10 s threshold of decision 8 only decides when to switch paths. A power cut in the first seconds of an outage therefore loses nothing.
 - **Test scope: native_sim with injected fakes.** The log is written through Zephyr's flash API (the flash simulator on `native_sim`), and the sender is injected as a function pointer, as S-038 did for SNTP. A bench test on the real W25Q64 is a later story.
 
+## Resolved by the tech lead after merge, 2026-11-25 (recorded by S-040, issue #83)
+- **Firmware-update slots stay in internal flash**, so **984 KB is the firmware image budget**. A CI warning when the image nears it is wanted; there is no FRDM image to measure until the firmware app exists, so it is recorded as work for P1-01.
+- **The EE is to confirm** that the pilot board carries the standard W25Q64.
+- **App settings:** `full_interval` **60**, `ack_persist_interval` **60** (at most about a minute of duplicates after a power cut, which P1-17 must drop), batch size **16 to 32**, the exact value chosen when the app is built.
+- **Gap record:** the lost count plus the boot id, seq, up and (when known) t of the first and last lost scan, added to `interfaces/records.cddl` by S-040.
+
 ## Implementation
 - `firmware/src/record/scan_codec.h/.c`: the lossless full and delta encoding of one scan. A delta entry has two bitmaps (quality, presence or age changed; value changed), so a noisy analogue reading costs one byte a scan.
 - `firmware/src/record/flash_log.h/.c`: the append-only ring of 4 KB sectors over Zephyr's flash API. Entries are framed with type, length and CRC-16 and only written to erased flash; every sector starts with its own header (sequence number and delivered position) and then a full scan, so dropping a sector never orphans deltas. Mounting finds the newest sector, skips a torn entry left by a power cut and writes on in a fresh sector. When the ring is full the oldest sector is erased and a gap entry with the number of undelivered scans lost is written (a dropped sector's own gap counts are carried forward). The delivered position is persisted every `ack_persist_interval` acknowledgements; anything acknowledged after the last persisted one is resent after a power cut, and the cloud drops the duplicates (P1-17).
 - `firmware/src/communications/log_forwarder.h/.c`: reads up to one batch from the log, hands it to an injected `send_fn`, and marks it delivered only when `send_fn` reports the cloud's acknowledgement; otherwise it rewinds so the batch is resent.
-- Not wired into a running app (no firmware app exists yet, as for every module so far). `full_interval`, `ack_persist_interval`, the batch size and the partition are the app's configuration, `[Confirm]` when it is built.
-- `[Confirm]` The record schema has no gap record yet: a gap reaches `send_fn` as a gap item with a count, and how it is sent to the cloud is the MQTT sender's (P1-12) decision, possibly a schema change in `interfaces/`.
+- Not wired into a running app (no firmware app exists yet, as for every module so far). `full_interval`, `ack_persist_interval`, the batch size and the partition are the app's configuration; the values are decided below.
+- A gap reaches `send_fn` as a gap item. The gap record in `interfaces/records.cddl` that carries it to the cloud was added by S-040.
 
 ## Acceptance criteria
 - A **24-hour** link outage loses no data after reconnect.

@@ -115,6 +115,23 @@ ZTEST(scan_codec, test_delta_round_trip_with_every_kind_of_change)
 	round_trip_delta(&prev, &s, &len);
 }
 
+ZTEST(scan_codec, test_delta_decodes_in_place)
+{
+	struct tank_scan prev;
+	struct tank_scan s;
+	size_t len;
+
+	make_scan(&prev, 1U);
+	make_scan(&s, 2U);
+	s.r[0].val = 11990;
+	s.r[1].has_val = false;
+	s.r[1].val = 0;
+	s.r[1].q = 3U;
+	len = tank_scan_encode_delta(&prev, &s, buf, sizeof(buf));
+	zassert_ok(tank_scan_decode_delta(&prev, buf, len, &prev));
+	assert_scan_equal(&s, &prev);
+}
+
 ZTEST(scan_codec, test_typical_scan_deltas_fit_the_capacity_estimate)
 {
 	struct tank_scan prev;

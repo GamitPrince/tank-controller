@@ -20,7 +20,16 @@
 #define ERASED_BYTE 0xFFU
 #define MIN_SECTORS 2U
 #define SECTOR_PAYLD 12U
-#define GAP_PAYLD 4U
+/* A gap entry: lost count, then the first and last lost scan, each boot id,
+ * seq, up, tk and t.
+ */
+#define MARK_SEQ TANK_BOOT_ID_LEN
+#define MARK_UP (MARK_SEQ + 4U)
+#define MARK_TK (MARK_UP + 4U)
+#define MARK_T (MARK_TK + 1U)
+#define MARK_LEN (MARK_T + 8U)
+#define GAP_FIRST 4U
+#define GAP_PAYLD (GAP_FIRST + 2U * MARK_LEN)
 #define ACK_PAYLD 8U
 
 enum entry_type {
@@ -121,41 +130,114 @@ static bool sector_header(struct tank_flash_log *log, uint32_t seq, uint64_t *ac
 	return true;
 }
 
-/* Undelivered scans in a sector, plus those its own undelivered gaps lost.
- * *scans gets the first part alone, so lost_scans counts each scan once.
- */
-static uint32_t count_lost(struct tank_flash_log *log, uint32_t seq, uint64_t from, uint32_t *scans)
+static void put_mark(uint8_t *p, const struct tank_log_mark *m)
 {
+	memcpy(p, m->boot_id, TANK_BOOT_ID_LEN);
+	sys_put_le32(m->seq, &p[MARK_SEQ]);
+	sys_put_le32(m->up_ms, &p[MARK_UP]);
+	p[MARK_TK] = m->tk ? 1U : 0U;
+	sys_put_le64(m->t_s, &p[MARK_T]);
+}
+
+static void get_mark(const uint8_t *p, struct tank_log_mark *m)
+{
+	memcpy(m->boot_id, p, TANK_BOOT_ID_LEN);
+	m->seq = sys_get_le32(&p[MARK_SEQ]);
+	m->up_ms = sys_get_le32(&p[MARK_UP]);
+	m->tk = p[MARK_TK] != 0U;
+	m->t_s = sys_get_le64(&p[MARK_T]);
+}
+
+static void put_gap(uint8_t *p, const struct tank_log_gap *gap)
+{
+	sys_put_le32(gap->lost, p);
+	put_mark(&p[GAP_FIRST], &gap->first);
+	put_mark(&p[GAP_FIRST + MARK_LEN], &gap->last);
+}
+
+static void get_gap(const uint8_t *p, struct tank_log_gap *gap)
+{
+	gap->lost = sys_get_le32(p);
+	get_mark(&p[GAP_FIRST], &gap->first);
+	get_mark(&p[GAP_FIRST + MARK_LEN], &gap->last);
+}
+
+static void mark_of(const struct tank_scan *s, struct tank_log_mark *m)
+{
+	memcpy(m->boot_id, s->boot_id, TANK_BOOT_ID_LEN);
+	m->seq = s->seq;
+	m->up_ms = s->up_ms;
+	m->tk = s->tk;
+	m->t_s = s->t_s;
+}
+
+/* Decode a dropped sector's scan into drop_scan. Every sector starts with a
+ * full scan, so a delta always has the scan before it.
+ */
+static void decode_dropped(struct tank_flash_log *log, const struct frame *fr)
+{
+	if (fr->type == ENTRY_FULL) {
+		(void)tank_scan_decode_full(fr->payload, fr->len, &log->drop_scan);
+	} else {
+		(void)tank_scan_decode_delta(&log->drop_scan, fr->payload, fr->len,
+					     &log->drop_scan);
+	}
+}
+
+/* Add one dropped item (a scan, or an older gap) to the gap being built. */
+static void widen_gap(struct tank_log_gap *gap, const struct tank_log_gap *item)
+{
+	if (gap->lost == 0U) {
+		gap->first = item->first;
+	}
+	gap->last = item->last;
+	gap->lost += item->lost;
+}
+
+/* The undelivered scans in a sector, and the gaps it held that were never
+ * delivered either. *scans gets the scans alone, so lost_scans counts each
+ * scan once.
+ */
+static void collect_lost(struct tank_flash_log *log, uint32_t seq, uint64_t from,
+			 struct tank_log_gap *gap, uint32_t *scans)
+{
+	struct tank_log_gap item = {0};
 	struct frame fr;
-	uint32_t n = 0U;
 	size_t off = 0U;
 
+	*gap = (struct tank_log_gap){0};
 	*scans = 0U;
-
 	while (read_frame(log, seq, off, &fr) == 0) {
 		bool undelivered = pos_of(log, seq, off) >= from;
 
-		if (undelivered && (fr.type == ENTRY_FULL || fr.type == ENTRY_DELTA)) {
-			n++;
-			(*scans)++;
-		} else if (undelivered && fr.type == ENTRY_GAP && fr.len == GAP_PAYLD) {
-			n += sys_get_le32(fr.payload);
+		if (fr.type == ENTRY_FULL || fr.type == ENTRY_DELTA) {
+			decode_dropped(log, &fr);
+			mark_of(&log->drop_scan, &item.first);
+			item.last = item.first;
+			item.lost = 1U;
+			*scans += undelivered ? 1U : 0U;
+		} else if (fr.type == ENTRY_GAP && fr.len == GAP_PAYLD) {
+			get_gap(fr.payload, &item);
+		} else {
+			item.lost = 0U;
+		}
+		if (undelivered && item.lost > 0U) {
+			widen_gap(gap, &item);
 		}
 		off += fr.len + FRAME_EXTRA;
 	}
-	return n;
 }
 
 /* The ring is full: drop the oldest sector, recording undelivered scans. */
-static uint32_t drop_oldest(struct tank_flash_log *log, uint32_t old)
+static void drop_oldest(struct tank_flash_log *log, uint32_t old, struct tank_log_gap *gap)
 {
 	uint64_t old_end = pos_of(log, old + 1U, 0U);
 	uint64_t ack;
-	uint32_t lost = 0U;
 	uint32_t scans;
 
+	*gap = (struct tank_log_gap){0};
 	if (sector_header(log, old, &ack) && log->ack_pos < old_end) {
-		lost = count_lost(log, old, MAX(log->ack_pos, pos_of(log, old, 0U)), &scans);
+		collect_lost(log, old, MAX(log->ack_pos, pos_of(log, old, 0U)), gap, &scans);
 		log->lost_scans += scans;
 		log->ack_pos = old_end;
 	}
@@ -164,7 +246,6 @@ static uint32_t drop_oldest(struct tank_flash_log *log, uint32_t old)
 		log->read_prev_valid = false;
 	}
 	log->tail_pos = MAX(log->tail_pos, old_end);
-	return lost;
 }
 
 static int open_sector(struct tank_flash_log *log, uint32_t seq)
@@ -187,17 +268,17 @@ static int open_sector(struct tank_flash_log *log, uint32_t seq)
 static int open_next_sector(struct tank_flash_log *log)
 {
 	uint32_t next = log->head_seq + 1U;
-	uint32_t lost = 0U;
+	struct tank_log_gap gap = {0};
 	int rc;
 
 	if (next >= log->sector_count) {
-		lost = drop_oldest(log, next - log->sector_count);
+		drop_oldest(log, next - log->sector_count, &gap);
 	}
 	rc = open_sector(log, next);
-	if (rc != 0 || lost == 0U) {
+	if (rc != 0 || gap.lost == 0U) {
 		return rc;
 	}
-	sys_put_le32(lost, &log->frame[FRAME_HDR]);
+	put_gap(&log->frame[FRAME_HDR], &gap);
 	return write_frame(log, ENTRY_GAP, GAP_PAYLD);
 }
 
@@ -360,7 +441,7 @@ static bool to_item(struct tank_flash_log *log, const struct frame *fr, struct t
 	}
 	if (fr->type == ENTRY_GAP && fr->len == GAP_PAYLD) {
 		out->kind = TANK_LOG_ITEM_GAP;
-		out->lost_scans = sys_get_le32(fr->payload);
+		get_gap(fr->payload, &out->gap);
 		return true;
 	}
 	return false;

@@ -259,13 +259,19 @@ class Schema:
                 return checks[0]
 
             def check_choice(value: object, path: str) -> None:
+                reasons = []
                 for check in checks:
                     try:
                         check(value, path)
-                    except SchemaError:
+                    except SchemaError as error:
+                        reasons.append(str(error))
                         continue
                     return
-                raise SchemaError(f"{path}: {value!r} matches none of the allowed types")
+                # Say why each alternative failed, so a record that is nearly a
+                # scan record is not reported only as "matches nothing".
+                raise SchemaError(
+                    f"{path}: {value!r} matches none of the allowed types ({'; '.join(reasons)})"
+                )
 
             return check_choice
         return self._compile_type2(node)
