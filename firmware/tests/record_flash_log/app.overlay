@@ -1,0 +1,12 @@
+/*
+ * Grow native_sim's simulated flash to 10 MB so the test log can use a full
+ * 8 MB region, the size of the FRDM-MCXN947's external W25Q64 (S-039).
+ */
+&flashcontroller0 {
+	reg = <0x00000000 DT_SIZE_M(10)>;
+};
+
+&flash0 {
+	reg = <0x00000000 DT_SIZE_M(10)>;
+	ranges = <0x0 0x0 DT_SIZE_M(10)>;
+};
