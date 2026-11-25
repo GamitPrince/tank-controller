@@ -1,0 +1,9 @@
+tests:
+  hardware.esp32_uart:
+    tags:
+      - hardware
+      - communications
+    timeout: 600
+    platform_allow:
+      - native_sim
+      - native_sim/native/64
