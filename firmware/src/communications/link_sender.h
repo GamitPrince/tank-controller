@@ -104,6 +104,20 @@ int tank_link_sender_poll(struct tank_link_sender *s, uint32_t now_ms);
 
 bool tank_link_sender_busy(const struct tank_link_sender *s);
 
+/*
+ * Milliseconds until tank_link_sender_poll() next has something to do (0
+ * when it is due now, or when nothing is in flight), so a caller can wait
+ * for a reply without overshooting a retransmission (S-045).
+ */
+uint32_t tank_link_sender_wait_ms(const struct tank_link_sender *s, uint32_t now_ms);
+
+/*
+ * Drop the RECORD in flight without confirming it, when the caller can no
+ * longer receive its DELIVERED (a UART read error, S-045). A DELIVERED that
+ * arrives for it later counts as stale. Counted as given up.
+ */
+void tank_link_sender_abandon(struct tank_link_sender *s);
+
 const struct tank_link_sender_stats *tank_link_sender_stats(const struct tank_link_sender *s);
 
 #endif /* TANK_COMMUNICATIONS_LINK_SENDER_H_ */
