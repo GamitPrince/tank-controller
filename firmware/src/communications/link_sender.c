@@ -112,6 +112,26 @@ bool tank_link_sender_busy(const struct tank_link_sender *s)
 	return s != NULL && s->in_flight;
 }
 
+uint32_t tank_link_sender_wait_ms(const struct tank_link_sender *s, uint32_t now_ms)
+{
+	uint32_t elapsed;
+
+	if (s == NULL || !s->in_flight) {
+		return 0U;
+	}
+	elapsed = now_ms - s->last_write_ms;
+	return (elapsed >= s->cfg.ack_timeout_ms) ? 0U : s->cfg.ack_timeout_ms - elapsed;
+}
+
+void tank_link_sender_abandon(struct tank_link_sender *s)
+{
+	if (s == NULL || !s->in_flight) {
+		return;
+	}
+	s->in_flight = false;
+	s->stats.given_up++;
+}
+
 const struct tank_link_sender_stats *tank_link_sender_stats(const struct tank_link_sender *s)
 {
 	return (s == NULL) ? NULL : &s->stats;

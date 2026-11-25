@@ -273,3 +273,28 @@ ZTEST(link_sender, test_null_sender_is_harmless)
 	zassert_is_null(tank_link_sender_stats(NULL));
 	zassert_ok(tank_link_sender_poll(&sender, 0U), "idle poll");
 }
+
+ZTEST(link_sender, test_wait_ms_counts_down_to_the_next_resend)
+{
+	zassert_equal(tank_link_sender_wait_ms(&sender, 0U), 0U, "nothing in flight");
+	zassert_ok(tank_link_sender_send(&sender, payload, sizeof(payload), CLOCK_NEAR_WRAP));
+	zassert_equal(tank_link_sender_wait_ms(&sender, CLOCK_NEAR_WRAP), TIMEOUT_MS);
+	zassert_equal(tank_link_sender_wait_ms(&sender, CLOCK_NEAR_WRAP + TIMEOUT_MS - 1U), 1U);
+	zassert_equal(tank_link_sender_wait_ms(&sender, CLOCK_NEAR_WRAP + TIMEOUT_MS), 0U);
+	zassert_equal(tank_link_sender_wait_ms(NULL, 0U), 0U);
+}
+
+ZTEST(link_sender, test_abandon_frees_the_sender)
+{
+	zassert_ok(tank_link_sender_send(&sender, payload, sizeof(payload), 0U));
+	tank_link_sender_abandon(&sender);
+	zassert_false(tank_link_sender_busy(&sender));
+	zassert_equal(tank_link_sender_stats(&sender)->given_up, 1U);
+	zassert_equal(confirm(0U), 0, "a late DELIVERED is stale");
+	zassert_equal(tank_link_sender_stats(&sender)->stale_acks, 1U);
+	tank_link_sender_abandon(&sender);
+	tank_link_sender_abandon(NULL);
+	zassert_equal(tank_link_sender_stats(&sender)->given_up, 1U, "idle abandon does nothing");
+	zassert_ok(tank_link_sender_send(&sender, payload, sizeof(payload), 0U));
+	zassert_equal(last_written().seq, 1U, "the abandoned seq is not reused");
+}
