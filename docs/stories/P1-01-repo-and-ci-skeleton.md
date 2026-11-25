@@ -20,6 +20,8 @@ Repository configuration only. No code, no safety function.
 ## What is left
 **No component has a `ci.sh`.** The CI contract in `CONTRIBUTING.md` says each of `firmware/`, `gateway/`, `dashboard/`, `simulator/` needs one that builds, lints, tests and writes a Cobertura `coverage.xml`, and that a folder with code but no `ci.sh` fails CI. The folders are empty so CI passes today, but the first code in any of them will fail. Overlaps P1-00 criterion 4.
 
+**Firmware image size warning** (tech lead, 2026-11-25, recorded by S-040). MCUboot's two firmware-update slots stay in the FRDM's internal flash, so the firmware image must stay under the **984 KB** slot; if it outgrew that, the slots would move to the external flash and eat into the outage buffer (S-039's capacity calculation). Once CI builds a real FRDM firmware image, `firmware/ci.sh` should warn when the image nears 984 KB. Today CI builds only ztest binaries for `native_sim`, so there is nothing to measure yet. `[Confirm]` which story first builds the FRDM app image, if not this one.
+
 ## Acceptance criteria (from the story card)
 - Folders for firmware, gateway, dashboard, simulator, hardware, interfaces and docs exist. **Met**
 - Direct pushes to `main` and `develop` are blocked. **Met**
