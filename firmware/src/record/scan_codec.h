@@ -78,7 +78,9 @@ size_t tank_scan_encode_delta(const struct tank_scan *prev, const struct tank_sc
 /* Decode a full entry. Returns 0, or -EINVAL if the bytes are malformed. */
 int tank_scan_decode_full(const uint8_t *buf, size_t len, struct tank_scan *out);
 
-/* Decode a delta entry against prev. Returns 0, or -EINVAL if malformed. */
+/* Decode a delta entry against prev; out may be prev itself, to decode in
+ * place. Returns 0, or -EINVAL if malformed.
+ */
 int tank_scan_decode_delta(const struct tank_scan *prev, const uint8_t *buf, size_t len,
 			   struct tank_scan *out);
 

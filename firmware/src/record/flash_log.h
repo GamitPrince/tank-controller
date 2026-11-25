@@ -8,9 +8,10 @@
  *   after a cloud acknowledgement. There is no buffer-start threshold.
  * - The log is a ring of erase sectors over the whole partition. When the
  *   ring is full the oldest sector is erased; if it still held undelivered
- *   scans, a gap entry recording how many were lost is written and later
- *   forwarded like a scan. A dropped sector's own undelivered gap entries
- *   are carried into the new one, so the total lost is never understated.
+ *   scans, a gap entry recording how many were lost, and the first and last
+ *   of them, is written and later forwarded like a scan (S-040). A dropped
+ *   sector's own undelivered gap entries are carried into the new one, so
+ *   neither the count nor the start of the hole is ever lost.
  * - Delta encoded (scan_codec.h). Every sector starts with a full scan, so
  *   dropping a sector never orphans the deltas after it.
  * - Each entry is framed as type, length, payload and CRC-16, and is only
@@ -55,6 +56,26 @@ struct tank_flash_log_config {
 	uint32_t ack_persist_interval;
 };
 
+/* Where a scan sat in time: what a gap record's `first` and `last` carry
+ * (interfaces/records.cddl `lost-scan`).
+ */
+struct tank_log_mark {
+	uint8_t boot_id[TANK_BOOT_ID_LEN];
+	uint32_t seq;
+	uint32_t up_ms;
+	bool tk;
+	uint64_t t_s;
+};
+
+/* Every scan from first to last was dropped; lost of them are counted here
+ * (interfaces/records.cddl `gap-record`).
+ */
+struct tank_log_gap {
+	uint32_t lost;
+	struct tank_log_mark first;
+	struct tank_log_mark last;
+};
+
 enum tank_log_item_kind {
 	TANK_LOG_ITEM_SCAN,
 	/* Scans were dropped because the log was full. */
@@ -64,8 +85,8 @@ enum tank_log_item_kind {
 struct tank_log_item {
 	enum tank_log_item_kind kind;
 	struct tank_scan scan;
-	/* For a gap item: how many undelivered scans were dropped. */
-	uint32_t lost_scans;
+	/* For a gap item: which undelivered scans were dropped. */
+	struct tank_log_gap gap;
 	/* Position just after this item; pass to tank_flash_log_ack(). */
 	uint64_t end_pos;
 };
@@ -85,6 +106,7 @@ struct tank_flash_log {
 	uint32_t since_full;
 	struct tank_scan read_prev;
 	bool read_prev_valid;
+	struct tank_scan drop_scan;
 	uint32_t lost_scans;
 	bool mounted;
 	uint8_t frame[TANK_FLASH_LOG_FRAME_MAX];

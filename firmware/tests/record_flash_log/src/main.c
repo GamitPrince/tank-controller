@@ -113,6 +113,9 @@ ZTEST(flash_log, test_full_log_drops_oldest_and_records_a_gap)
 	uint32_t lost = 0U;
 	uint32_t kept = 0U;
 	uint32_t next_seq = 0U;
+	uint32_t first_lost = UINT32_MAX;
+	uint32_t last_lost = 0U;
+	uint32_t first_kept = 0U;
 
 	mount(SMALL_RING);
 	append_run(0U, 1U, FILL_SCANS, false);
@@ -120,9 +123,14 @@ ZTEST(flash_log, test_full_log_drops_oldest_and_records_a_gap)
 
 	while (tank_flash_log_read_next(&log, &item) == 0) {
 		if (item.kind == TANK_LOG_ITEM_GAP) {
-			lost += item.lost_scans;
+			zassert_true(item.gap.first.seq <= item.gap.last.seq);
+			zassert_false(item.gap.first.tk, "boot 0 never synced");
+			lost += item.gap.lost;
+			first_lost = MIN(first_lost, item.gap.first.seq);
+			last_lost = MAX(last_lost, item.gap.last.seq);
 			continue;
 		}
+		first_kept = (first_kept == 0U) ? item.scan.seq : first_kept;
 		zassert_true(next_seq == 0U || item.scan.seq == next_seq, "no hole inside the log");
 		scan_gen_check(&item, 0U, item.scan.seq, false);
 		next_seq = item.scan.seq + 1U;
@@ -131,6 +139,11 @@ ZTEST(flash_log, test_full_log_drops_oldest_and_records_a_gap)
 	zassert_equal(lost, tank_flash_log_lost_scans(&log));
 	zassert_equal(next_seq, FILL_SCANS + 1U, "the newest scans are kept");
 	zassert_equal(kept + lost, FILL_SCANS, "every scan is either kept or counted lost");
+	/* The gap records place the hole exactly: from the oldest scan up to the
+	 * one before the oldest kept scan, even after gaps were carried forward.
+	 */
+	zassert_equal(first_lost, 1U);
+	zassert_equal(last_lost + 1U, first_kept);
 }
 
 ZTEST(flash_log, test_ack_and_rewind)

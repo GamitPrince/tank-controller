@@ -71,7 +71,9 @@ static int fake_send(void *ctx, const struct tank_log_item *items, size_t count)
 		uint8_t boot = (uint8_t)(items[i].scan.boot_id[0] - 0xB0U);
 
 		if (items[i].kind == TANK_LOG_ITEM_GAP) {
-			c->lost += items[i].lost_scans;
+			zassert_true(items[i].gap.lost > 0U);
+			zassert_true(items[i].gap.first.seq <= items[i].gap.last.seq);
+			c->lost += items[i].gap.lost;
 			c->gap_pending = true;
 			continue;
 		}
