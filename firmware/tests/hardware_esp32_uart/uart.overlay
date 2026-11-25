@@ -1,0 +1,17 @@
+/*
+ * An emulated UART standing in for the FRDM's UART to the ESP32 (S-048).
+ * The FIFOs are large enough for a whole record frame.
+ */
+/ {
+	chosen {
+		tank,esp32-uart = &esp32_uart;
+	};
+
+	esp32_uart: esp32-uart {
+		compatible = "zephyr,uart-emul";
+		status = "okay";
+		current-speed = <115200>;
+		rx-fifo-size = <1024>;
+		tx-fifo-size = <2048>;
+	};
+};
