@@ -5,7 +5,9 @@
  * (firmware/src/record/flash_log.h) and hands them to send_fn. When send_fn
  * reports a cloud acknowledgement the batch is marked delivered; otherwise
  * it is rewound and resent on a later poll, so nothing is lost while the
- * link is down. Items keep the boot id, seq, up, tk and t they were logged
+ * link is down. When only the first items of a batch were acknowledged
+ * (a stop-and-wait link that gave up part way, S-045), those are marked
+ * delivered and only the rest is resent. Items keep the boot id, seq, up, tk and t they were logged
  * with (ADR-0004 decision 11); records are batched when catching up
  * (ADR-0004 decision 6).
  *
@@ -21,8 +23,10 @@
 
 #include "flash_log.h"
 
-/* Returns 0 once the cloud has acknowledged every item, or a negative error
- * code if it has not (link down, timeout).
+/*
+ * Returns the number of leading items the cloud has acknowledged (1 to
+ * count), or a negative error code when it acknowledged none (link down,
+ * timeout). Any other value is a broken send_fn.
  */
 typedef int (*tank_log_send_fn)(void *ctx, const struct tank_log_item *items, size_t count);
 
@@ -37,8 +41,9 @@ struct tank_log_forwarder {
 
 /*
  * Forward one batch. Returns the number of items delivered (0 when caught
- * up), the send_fn error if the cloud did not acknowledge, -EINVAL, or a
- * flash error.
+ * up; fewer than the batch when send_fn acknowledged only part of it), the
+ * send_fn error if the cloud acknowledged none, -EINVAL for bad arguments
+ * or a send_fn result outside 1 to count, or a flash error.
  */
 int tank_log_forwarder_poll(const struct tank_log_forwarder *fw);
 

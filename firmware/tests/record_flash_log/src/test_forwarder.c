@@ -5,7 +5,9 @@
  * it refuses every batch; once up it checks each scan against the generator,
  * so original timestamps, boot ids and the "time not yet known" flag are
  * verified end to end, and that scans arrive in order with no hole that a
- * gap item does not account for.
+ * gap item does not account for. A cloud that acknowledges only the first
+ * items of a batch (S-045) must receive the rest once, never the
+ * acknowledged ones again: check_order() fails on a repeated seq.
  */
 
 #include <zephyr/ztest.h>
@@ -28,6 +30,8 @@
 /* Usable log after a reserve, from the capacity calculation in the spec. */
 #define USABLE_BYTES (7680U * 1024U)
 #define TYPICAL_DAY_BYTES (3U * 1024U * 1024U)
+#define PARTIAL_SCANS 100U
+#define PARTIAL_ACK 5U
 
 struct fake_cloud {
 	bool link_up;
@@ -36,6 +40,11 @@ struct fake_cloud {
 	uint8_t last_boot;
 	uint32_t last_seq;
 	bool gap_pending;
+	/* When non-zero, acknowledge at most this many items of each batch. */
+	size_t ack_limit;
+	/* When set, return bad_result instead of a count (a broken send_fn). */
+	bool broken;
+	int bad_result;
 };
 
 static struct tank_flash_log log;
@@ -67,6 +76,12 @@ static int fake_send(void *ctx, const struct tank_log_item *items, size_t count)
 	if (!c->link_up) {
 		return -ENOTCONN;
 	}
+	if (c->broken) {
+		return c->bad_result;
+	}
+	if (c->ack_limit != 0U && c->ack_limit < count) {
+		count = c->ack_limit;
+	}
 	for (size_t i = 0U; i < count; i++) {
 		uint8_t boot = (uint8_t)(items[i].scan.boot_id[0] - 0xB0U);
 
@@ -81,7 +96,7 @@ static int fake_send(void *ctx, const struct tank_log_item *items, size_t count)
 		check_order(c, boot, items[i].scan.seq);
 		c->delivered++;
 	}
-	return 0;
+	return (int)count;
 }
 
 static const struct tank_log_forwarder fw = {
@@ -185,6 +200,43 @@ ZTEST(log_forwarder, test_caught_up_and_bad_arguments)
 	no_batch.batch_cap = 0U;
 	zassert_equal(tank_log_forwarder_poll(&no_batch), -EINVAL);
 	zassert_equal(tank_log_forwarder_poll(NULL), -EINVAL);
+}
+
+ZTEST(log_forwarder, test_partial_ack_resends_only_the_rest)
+{
+	mount(SMALL_RING);
+	for (uint32_t seq = 1U; seq <= PARTIAL_SCANS; seq++) {
+		append(0U, seq);
+	}
+	cloud.link_up = true;
+	cloud.ack_limit = PARTIAL_ACK;
+	zassert_equal(tank_log_forwarder_poll(&fw), PARTIAL_ACK);
+	zassert_equal(cloud.last_seq, PARTIAL_ACK);
+	zassert_equal(tank_log_forwarder_poll(&fw), PARTIAL_ACK, "the next poll starts after them");
+	zassert_equal(cloud.last_seq, 2U * PARTIAL_ACK);
+	cloud.ack_limit = 0U;
+	drain();
+	zassert_equal(cloud.delivered, PARTIAL_SCANS, "each scan delivered exactly once");
+	zassert_equal(cloud.last_seq, PARTIAL_SCANS);
+}
+
+ZTEST(log_forwarder, test_broken_send_result_acks_nothing)
+{
+	static const int bad[] = {0, BATCH_CAP + 1};
+
+	mount(SMALL_RING);
+	for (uint32_t seq = 1U; seq <= BATCH_CAP; seq++) {
+		append(0U, seq);
+	}
+	cloud.link_up = true;
+	cloud.broken = true;
+	for (size_t i = 0U; i < ARRAY_SIZE(bad); i++) {
+		cloud.bad_result = bad[i];
+		zassert_equal(tank_log_forwarder_poll(&fw), -EINVAL, "result %d", bad[i]);
+	}
+	cloud.broken = false;
+	drain();
+	zassert_equal(cloud.delivered, BATCH_CAP, "nothing was acknowledged by a broken result");
 }
 
 ZTEST_SUITE(log_forwarder, NULL, NULL, before_each, NULL, NULL);
