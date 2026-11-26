@@ -28,7 +28,7 @@ Updated 26 Nov 2026 (S-050) from the merged pull requests. "S-0xx" is the story 
 
 | ID | Story | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
-| P1-00 | Tech stack and ADRs | 5 | **Partly done** | ADR-0003 to 0009 merged (S-003 to S-009); the four firmware layers build in CI (CHORE-01, S-015). ADR-0002 unwritten (EE), ADR-0001 still Proposed, the merged ADRs' status lines still wrong |
+| P1-00 | Tech stack and ADRs | 5 | **Partly done** | ADR-0003 to 0009 merged (S-003 to S-009); the four firmware layers build in CI (CHORE-01, S-015). Merged ADRs' status lines say Accepted (S-051). ADR-0002 unwritten (EE), ADR-0001 still Proposed |
 | P1-01 | Repo, protection, PR template, CI skeleton | 3 | **Done** | Residual `ci.sh` work done as **CHORE-01** (S-015) |
 | P1-02 | Simulator | 5 | **Done** (S-018) | Every signal in the list, fault injection, outage replay with original timestamps |
 | P1-03 | Signal list v1 | 3 | **Done** (S-017) | `interfaces/signals-v1.yaml` and `records.cddl`; PT100 class and channel 16 recorded in S-023 |
@@ -69,7 +69,7 @@ Not on the story card. Repo infrastructure identified while working through Phas
 | CHORE-02 | Rename `gitattributes` to `.gitattributes` | 2 | **Done** (S-025) | A pure rename: the blob hash did not change and all 131 tracked blobs were already LF, so `--renormalize` produced nothing. `git check-attr text eol -- firmware/ci.sh` now reports `set` and `lf`, and the working tree went from 116 CRLF files to 0. An older checkout keeps CRLF until re-checked-out |
 | CHORE-03 | `pr-policy` reads labels from the event payload | 1 | **Specced** (S-024), not started | Spec: [`CHORE-03-pr-policy-label-source.md`](CHORE-03-pr-policy-label-source.md). Observed on PR #46: the `opened` event fires before `gh pr create` attaches the labels, so the first run demands a `safety` label that is present, and a re-run replays the same payload and fails again. Edits a CODEOWNERS policy file, so the tech lead decides first |
 
-Identified but not yet specced, listed under "Backlog-level problems" below: correcting the merged ADR status lines, and deciding the fate of `gateway/`.
+Identified but not yet specced, listed under "Backlog-level problems" below: deciding the fate of `gateway/` (the merged ADR status lines were corrected in S-051).
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
 
@@ -94,7 +94,7 @@ None open. `AGENTS.md` section 5 was corrected to match the EE's inventory in S-
 1. **Epic E3 (P1-11 to P1-16, 23 points) was written for a separate gateway that ADR-0004 removed.** Six of 27 stories need rewriting or dropping, not just re-pointing. The `gateway/` folder is obsolete too.
 2. **The story card predates ADR-0004 to ADR-0009.** It still says "all three developers" review `interfaces/` (superseded by S-010), register map (superseded by the YAML signal list), Modbus, OPC UA and VPN.
 3. **Stories the ADRs now require that the card does not contain:** ESP32 communications firmware (ADR-0006; started under P1-12 as S-047, the Wi-Fi, TLS, MQTT and 4G code still to come), device certificate and CA provisioning plus the QR claim flow (ADR-0005), Terraform or OpenTofu blueprints and the test and live environments (ADR-0009), the early cloud test that gates ADR-0007. The 107-point estimate is therefore low.
-4. **Known repo chores not on the card:** correct the seven merged ADR status lines; decide the fate of `gateway/`. Renaming `gitattributes` to `.gitattributes` is done (CHORE-02, S-025), and `pr-policy` reading labels from the event payload is specced as CHORE-03 (S-024).
+4. **Known repo chores not on the card:** decide the fate of `gateway/`. Correcting the seven merged ADR status lines is done (S-051). Renaming `gitattributes` to `.gitattributes` is done (CHORE-02, S-025), and `pr-policy` reading labels from the event payload is specced as CHORE-03 (S-024).
 5. The sprint plan's point totals no longer hold once 1 to 3 are settled.
 
 The story card is a Claude Doc owned by the project manager, so I have not changed it. These are recommendations for it.

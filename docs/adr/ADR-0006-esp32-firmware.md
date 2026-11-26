@@ -1,6 +1,6 @@
 # ADR-0006: ESP32 communications firmware: framework, language, tests, lock and modem
 
-- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when one collaborator other than the author approves the PR (the EE reviews the hardware and device-lock points). Not yet pushed to GitHub.
+- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #14.
 - Date: 17 Nov 2026
 - Story: P1-00 (issue S-002); shapes a new ESP32 firmware story (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
