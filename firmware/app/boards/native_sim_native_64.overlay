@@ -1,0 +1,6 @@
+/*
+ * Zephyr looks up a board overlay by the full board target, so the 64-bit
+ * variant CI builds (native_sim/native/64) needs its own file; it carries the
+ * same settings.
+ */
+#include "native_sim.overlay"

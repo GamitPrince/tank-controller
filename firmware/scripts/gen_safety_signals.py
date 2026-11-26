@@ -45,12 +45,22 @@ SIGNAL_GROUP = "digital"
 #: (3 to 9) are P1-27, each with its own table.
 STORY = "P1-05"
 
-#: The X-macro table name and its companion count macro, per story. Keep
-#: P1-05's names unchanged (other code already depends on them); add an entry
-#: here for every story this generator is asked to serve.
+#: The X-macro table name, its companion count macro and the header's include
+#: guard, per story. Keep P1-05's names unchanged (other code already depends
+#: on them); add an entry here for every story this generator is asked to
+#: serve. Each story's header has its own guard (and its own file name, set by
+#: the build), so one application can include both tables (S-060).
 STORY_TABLES = {
-    "P1-05": ("TANK_SAFETY_LEVEL_SWITCHES", "TANK_SAFETY_LEVEL_SWITCH_COUNT"),
-    "P1-09": ("TANK_SAFETY_ALARM_INPUTS", "TANK_SAFETY_ALARM_INPUT_COUNT"),
+    "P1-05": (
+        "TANK_SAFETY_LEVEL_SWITCHES",
+        "TANK_SAFETY_LEVEL_SWITCH_COUNT",
+        "TANK_SAFETY_SIGNALS_H_",
+    ),
+    "P1-09": (
+        "TANK_SAFETY_ALARM_INPUTS",
+        "TANK_SAFETY_ALARM_INPUT_COUNT",
+        "TANK_ALARM_SIGNALS_H_",
+    ),
 }
 
 #: Classes that are safety-chain or alarm reads and so belong in
@@ -93,8 +103,8 @@ HEADER_TEMPLATE = """\
  * debounce in ms, scan interval in ms.
  */
 
-#ifndef TANK_SAFETY_SIGNALS_H_
-#define TANK_SAFETY_SIGNALS_H_
+#ifndef {guard}
+#define {guard}
 
 #define TANK_SIGNAL_LIST_VERSION {version}
 
@@ -102,7 +112,7 @@ HEADER_TEMPLATE = """\
 
 #define {table_macro}(X){entries}
 
-#endif /* TANK_SAFETY_SIGNALS_H_ */
+#endif /* {guard} */
 """
 
 
@@ -187,7 +197,7 @@ def render_header(signals_path: Path, story: str = STORY) -> str:
             f"no generated macro name is defined for story {story!r}; "
             "add one to STORY_TABLES"
         )
-    table_macro, count_macro = tables
+    table_macro, count_macro, guard = tables
 
     raw = yaml.safe_load(signals_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
@@ -210,6 +220,7 @@ def render_header(signals_path: Path, story: str = STORY) -> str:
         version=_load_version(raw, signals_path),
         story=story,
         table_macro=table_macro,
+        guard=guard,
         count_macro=count_macro,
         count=len(macros),
         entries=" \\\n" + " \\\n".join(macros),

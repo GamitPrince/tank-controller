@@ -1,0 +1,7 @@
+tests:
+  app.tank_app:
+    tags:
+      - app
+    platform_allow:
+      - native_sim
+      - native_sim/native/64

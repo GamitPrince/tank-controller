@@ -84,7 +84,7 @@ check_formatting() {
 		return 0
 	fi
 	log "Checking formatting with clang-format"
-	find src tests -name '*.c' -o -name '*.h' | xargs clang-format --dry-run -Werror
+	find src tests app -name '*.c' -o -name '*.h' | xargs clang-format --dry-run -Werror
 	find "$SHARED_LINK_DIR" -name '*.c' -o -name '*.h' |
 		xargs clang-format --style="file:$FIRMWARE_DIR/.clang-format" --dry-run -Werror
 }
@@ -105,9 +105,10 @@ run_cppcheck() {
 	fi
 	log "Running $(cppcheck --version): blocking on $CPPCHECK_BLOCKING"
 	cppcheck --std=c11 --enable="$CPPCHECK_BLOCKING" --error-exitcode=1 --inline-suppr \
-		--quiet src "$SHARED_LINK_DIR"
+		--quiet src app/src "$SHARED_LINK_DIR"
 	log "cppcheck $CPPCHECK_ADVISORY findings (advisory, not blocking)"
-	cppcheck --std=c11 --enable="$CPPCHECK_ADVISORY" --inline-suppr --quiet src "$SHARED_LINK_DIR"
+	cppcheck --std=c11 --enable="$CPPCHECK_ADVISORY" --inline-suppr --quiet src app/src \
+		"$SHARED_LINK_DIR"
 }
 
 run_tests() {
@@ -116,6 +117,7 @@ run_tests() {
 	rm -rf "$TWISTER_OUT"
 	"$py" "$ZEPHYR_BASE/scripts/twister" \
 		--testsuite-root tests \
+		--testsuite-root app \
 		--platform "$BOARD" \
 		--outdir "$TWISTER_OUT" \
 		--coverage \

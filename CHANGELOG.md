@@ -57,6 +57,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The scan service (S-059): a thread takes a scan every second with the S-058 builder and appends it to the flash log, network or not. It runs above the uplink service so forwarding never delays a record, keeps to a fixed grid that does not drift, skips and counts grid points an overrun missed instead of bursting, and holds an optional lock shared with whoever updates the inputs. seq advances per scan built, so a scan the flash failed to store shows as a gap.
 
+- The firmware application (S-060): `firmware/app/` boots with a fresh random boot id, mounts the flash log on the devicetree's `tank,log-partition`, sets up all 23 Phase 1 inputs from the signal-list tables and starts the one-second scan thread, network or not. Built for native_sim in CI until the board overlay exists. Until the pins are read, every reading goes out without a value (unconfigured or fault). The P1-09 alarm table's generated header is now `tank_alarm_signals.h`, with its own include guard, so both safety tables build in one application.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.

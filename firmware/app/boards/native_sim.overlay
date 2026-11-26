@@ -1,0 +1,10 @@
+/*
+ * On native_sim the flash log uses the simulated flash's storage partition.
+ * The FRDM-MCXN947 overlay (with the EE's pin mapping) points
+ * tank,log-partition at the external W25Q64 instead.
+ */
+/ {
+	chosen {
+		tank,log-partition = &storage_partition;
+	};
+};

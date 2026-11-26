@@ -1,11 +1,13 @@
 /*
  * The alarm-contact contracts, taken from the signal list at build time.
  *
- * tank_safety_signals.h is generated from interfaces/signals-v1.yaml by
- * firmware/scripts/gen_safety_signals.py and is never committed, so no signal
- * id, channel number, contact sense or debounce figure is written into C. If a
- * contact is added to the signal list for this story, the table below grows
- * without any change here.
+ * tank_alarm_signals.h is generated from interfaces/signals-v1.yaml by
+ * firmware/scripts/gen_safety_signals.py --story P1-09 and is never
+ * committed, so no signal id, channel number, contact sense or debounce figure
+ * is written into C. If a contact is added to the signal list for this story,
+ * the table below grows without any change here. It has its own name, apart
+ * from the P1-05 table's tank_safety_signals.h, so the application can build
+ * both (S-060).
  *
  * The table is const: a caller can read a channel's contract but cannot alter
  * what the contract says, and there is nothing here to drive a channel with.
@@ -15,7 +17,7 @@
 
 #include <stddef.h>
 
-#include "tank_safety_signals.h"
+#include "tank_alarm_signals.h"
 
 /*
  * The parameter names are prefixed because macro substitution replaces a

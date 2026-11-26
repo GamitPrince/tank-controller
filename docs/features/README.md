@@ -35,7 +35,8 @@ Started 26 Nov 2026 (S-052) by back-filling the features merged so far. Each row
 | Zephyr UART driver for the ESP32 link | P1-12 | S-048, PR #100 | `src/hardware/esp32_uart*` | `tests/hardware_esp32_uart` |
 | Uplink service thread; flash log made thread-safe | P1-12 | S-049, PR #102 | `src/communications/uplink_service*`, `src/record/flash_log*` | `tests/communications_uplink_service` |
 | One-second scan record built from the 23 inputs (scaled value, quality, age, boot-time header) | P1-12 | S-058, PR #120 | `src/record/scan_builder*` | `tests/record_scan_builder` |
-| A scan every second, logged to flash on a drift-free grid | P1-12, P1-14 | S-059 | `src/record/scan_service*` | `tests/record_scan_service` |
+| A scan every second, logged to flash on a drift-free grid | P1-12, P1-14 | S-059, PR #122 | `src/record/scan_service*` | `tests/record_scan_service` |
+| Firmware application: boot id, flash log, all 23 inputs and the scan thread at boot, network or not | P1-12, P1-14 | S-060 | `src/app/tank_app*`, `app/`, `cmake/` | `tests/app_tank_app` |
 
 ## ESP32 firmware
 
