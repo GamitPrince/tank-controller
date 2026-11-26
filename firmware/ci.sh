@@ -24,6 +24,9 @@ BOARD="${BOARD:-native_sim/native/64}"
 
 FIRMWARE_DIR="$(pwd)"
 WORKSPACE_DIR="$(cd .. && pwd)"
+# The link library both boards build (S-056). This job formats, checks, tests
+# and measures it, so the ESP32 job does not count it twice.
+SHARED_LINK_DIR="$WORKSPACE_DIR/shared/link-protocol"
 
 log() { echo "==> $*"; }
 
@@ -79,6 +82,8 @@ check_formatting() {
 	fi
 	log "Checking formatting with clang-format"
 	find src tests -name '*.c' -o -name '*.h' | xargs clang-format --dry-run -Werror
+	find "$SHARED_LINK_DIR" -name '*.c' -o -name '*.h' |
+		xargs clang-format --style="file:$FIRMWARE_DIR/.clang-format" --dry-run -Werror
 }
 
 # cppcheck is in ADR-0003 but is not on every runner image. It is advisory here
@@ -89,7 +94,7 @@ run_cppcheck() {
 		return 0
 	fi
 	log "Running cppcheck"
-	cppcheck --error-exitcode=1 --enable=warning,style --inline-suppr --quiet src
+	cppcheck --error-exitcode=1 --enable=warning,style --inline-suppr --quiet src "$SHARED_LINK_DIR"
 }
 
 run_tests() {
@@ -107,13 +112,15 @@ run_tests() {
 
 # ADR-0003 decision 10: coverage counts all our firmware code, including the
 # hardware layer. Only Zephyr, third-party and generated code are excluded,
-# which the --filter below expresses by including src/ and nothing else.
+# which the filters below express by including src/ and the shared link
+# library and nothing else.
 write_coverage_report() {
 	local py="$1"
 	log "Writing Cobertura coverage.xml"
 	"$py" -m gcovr \
-		--root "$FIRMWARE_DIR" \
+		--root "$WORKSPACE_DIR" \
 		--filter "$FIRMWARE_DIR/src/" \
+		--filter "$SHARED_LINK_DIR/" \
 		--cobertura coverage.xml \
 		--print-summary \
 		"$TWISTER_OUT"

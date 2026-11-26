@@ -72,8 +72,9 @@ build_and_test() {
 	ctest --test-dir "$BUILD_DIR" --output-on-failure
 }
 
-# Only esp32/ code counts here. The shared link library is measured by the
-# firmware job, so it is not counted twice.
+# Only esp32/ code counts here. The shared link library (shared/link-protocol/,
+# S-056) is formatted, tested and measured by the firmware job, so it is not
+# counted twice.
 write_coverage_report() {
 	local py="$1"
 	log "Writing Cobertura coverage.xml"

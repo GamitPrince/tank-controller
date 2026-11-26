@@ -12,8 +12,7 @@
  *
  * This file and link_frame.c use only the C standard library so the same
  * code can build for the ESP32 under ESP-IDF ("one small C library shared
- * by both boards"). [Confirm] It moves to a shared folder once the ESP32
- * firmware has a home in the repo (AGENTS.md section 6).
+ * by both boards"). Both boards build it from shared/link-protocol/ (S-056).
  *
  * Phase 1: no message type carries a command to the plant or to the FRDM's
  * measurement, and none may be added.
