@@ -27,6 +27,9 @@ WORKSPACE_DIR="$(cd .. && pwd)"
 # The link library both boards build (S-056). This job formats, checks, tests
 # and measures it, so the ESP32 job does not count it twice.
 SHARED_LINK_DIR="$WORKSPACE_DIR/shared/link-protocol"
+# cppcheck severities (S-057). Errors are always reported and always block.
+CPPCHECK_BLOCKING="warning,portability"
+CPPCHECK_ADVISORY="style,performance"
 
 log() { echo "==> $*"; }
 
@@ -86,15 +89,25 @@ check_formatting() {
 		xargs clang-format --style="file:$FIRMWARE_DIR/.clang-format" --dry-run -Werror
 }
 
-# cppcheck is in ADR-0003 but is not on every runner image. It is advisory here
-# until a story adds it to CI deliberately; see the CHORE-01 spec.
+# cppcheck (ADR-0003 decision 7), blocking since S-057. Errors, warnings and
+# portability findings fail the job; style and performance findings are
+# printed for the reviewer and do not. A suppression is inline, next to the
+# code it hides and with its reason, so it is reviewed with that code.
+# CI installs cppcheck, so a missing one fails there and only warns locally.
 run_cppcheck() {
 	if ! command -v cppcheck >/dev/null 2>&1; then
-		echo "::notice::cppcheck is not installed; skipping static analysis."
+		if [ "${GITHUB_ACTIONS:-}" = true ]; then
+			echo "::error::cppcheck is not installed; the firmware CI job must install it."
+			return 1
+		fi
+		echo "::warning::cppcheck is not installed; skipping static analysis (CI runs it)."
 		return 0
 	fi
-	log "Running cppcheck"
-	cppcheck --error-exitcode=1 --enable=warning,style --inline-suppr --quiet src "$SHARED_LINK_DIR"
+	log "Running $(cppcheck --version): blocking on $CPPCHECK_BLOCKING"
+	cppcheck --std=c11 --enable="$CPPCHECK_BLOCKING" --error-exitcode=1 --inline-suppr \
+		--quiet src "$SHARED_LINK_DIR"
+	log "cppcheck $CPPCHECK_ADVISORY findings (advisory, not blocking)"
+	cppcheck --std=c11 --enable="$CPPCHECK_ADVISORY" --inline-suppr --quiet src "$SHARED_LINK_DIR"
 }
 
 run_tests() {

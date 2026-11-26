@@ -55,6 +55,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+      # firmware/ci.sh fails without it in CI (S-057, ADR-0003 amendment 2).
+      - name: Install cppcheck
+        run: sudo apt-get update -q && sudo apt-get install -y -q cppcheck
+      # The west workspace that firmware/ci.sh fetches. The key hashes the
+      # manifest that pins the Zephyr version and the pinned west version, and
+      # there are no restore-keys, so a changed pin never reuses an older
+      # tree (S-057, ADR-0003 amendment 3). west update still runs after a hit.
+      - name: Cache the Zephyr tree
+        uses: actions/cache@v4
+        with:
+          path: |
+            .west
+            zephyr
+            modules
+            bootloader
+            tools
+          key: zephyr-${{ runner.os }}-${{ hashFiles('firmware/west.yml', 'firmware/requirements-dev.txt') }}
       - run: bash scripts/ci/run-component.sh firmware
 
   dashboard:
