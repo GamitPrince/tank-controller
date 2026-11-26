@@ -55,6 +55,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The scan builder (S-058): one call turns the current state of the 23 Phase 1 inputs into the record the flash log stores, with loop currents in microamps, temperatures in centi-degrees, contacts as 1 or 0, each reading's quality and age, and the boot-time header. Faults and never-read inputs carry no value, and a contact whose state has not yet survived its debounce is a fault. Read-only: nothing in `firmware/src/safety/` changes.
 
+- The scan service (S-059): a thread takes a scan every second with the S-058 builder and appends it to the flash log, network or not. It runs above the uplink service so forwarding never delays a record, keeps to a fixed grid that does not drift, skips and counts grid points an overrun missed instead of bursting, and holds an optional lock shared with whoever updates the inputs. seq advances per scan built, so a scan the flash failed to store shows as a gap.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
