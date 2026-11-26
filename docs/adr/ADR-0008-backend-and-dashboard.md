@@ -1,6 +1,6 @@
 # ADR-0008: Backend and dashboard: languages, login, access, audit trail, live updates and tests
 
-- Status: **Accepted.** Confirmed by the tech lead on 19 Nov 2026, including the four proposed rules, the role meanings and the named-admin-account rule; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #16.
+- Status: **Accepted.** Confirmed by the tech lead on 19 Nov 2026, including the four proposed rules, the role meanings and the named-admin-account rule; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #16. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 18 Nov 2026 (confirmed 19 Nov 2026)
 - Story: P1-00 (issue S-002); shapes P1-19, P1-21, P1-26 and the backend and dashboard stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
@@ -62,3 +62,12 @@ Proposed rules (not asked in the decision dialog; to be confirmed by the tech le
 - RSD v0.2: FR-HMI-01, FR-HMI-05, FR-HMI-06, FR-HMI-07, FR-SAF-03, FR-SAF-04, NFR-01, NFR-05, NFR-08, NFR-10
 - ADR-0004, ADR-0005, ADR-0007
 - Amazon Cognito pricing and tier features (AWS pricing page, checked 18 Nov 2026)
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Owners (Context):** ArkinGamit and SHINE-18 left on 20 Nov 2026. GamitPrince builds the dashboard (P1-21, P1-22, P1-23, P1-26). prinz-assists owns QA sign-off, independent of the author; the EE handles safety and hardware validation; GamitPrince gives final Phase 1 acceptance.
+2. **Backend location:** the repository-root `backend/` folder, separate from `dashboard/`.
+3. **Migrations:** Alembic with SQLAlchemy, under `backend/migrations/`, version-controlled and tested before production. A destructive migration needs review, a backup and a rollback plan.
+4. **Review of the coverage exclusion list (decision 6):** one approval from a collaborator other than the author, like every other change since S-010, instead of "all three developers".

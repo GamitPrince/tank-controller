@@ -53,4 +53,4 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
-- The merged ADRs' status lines were corrected to Accepted in S-051; the 26 Nov 2026 amendments to their text are S-054.
+- The merged ADRs' status lines were corrected to Accepted in S-051; ADR-0003, 0004, 0006, 0007, 0008 and 0009 now end with an Amendments section for the 26 Nov 2026 decisions, and ADR-0001 is revised and still Proposed (S-054).

@@ -1,6 +1,6 @@
 # ADR-0003: Firmware framework, language, structure and test tooling
 
-- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #11.
+- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #11. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 30 Oct 2026, amended 2 Nov 2026 for the communications structure of ADR-0004
 - Story: P1-00 (issue S-002)
 - Deciders: GamitPrince (project manager / tech lead)
@@ -59,3 +59,12 @@ The Phase 1 firmware reads six PT100 channels (MAX31865, SPI), two 4-20 mA chann
 - RSD v0.2: FR-COM-01, FR-SAF-01, NFR-01, NFR-03, NFR-05
 - Zephyr releases page and release process; Zephyr board page for frdm_mcxn947; Zephyr coverage documentation; Zephyr MAX31865 and AD4130/AD4114 bindings
 - ADR-0002, ADR-0004
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Shared link library:** the hardware-independent link protocol (COBS framing, sequence numbers, CRC, delivery confirmation) moves from `firmware/src/communications/` to `shared/link-protocol/`, before the ESP32 work grows. The FRDM firmware and the ESP32 firmware build the same source, and both integrations are tested (S-056).
+2. **cppcheck blocks:** decision 7's cppcheck run becomes a blocking check. Errors of the configured severities fail CI, and the severities and any suppressions are reviewed like code (S-057).
+3. **Zephyr caching in CI:** the fetched Zephyr tree is cached, keyed on the Zephyr version, the `west.yml` manifest and the dependency lock, so an upgrade can never reuse a stale tree (S-057).
+4. **Acquisition timing:** the firmware writes one consolidated record to the flash log every second. PT100s are sampled every 1 s, the 4-20 mA inputs every 100 ms, and digital inputs are handled asynchronously with a 10 ms response target (the 200 ms and 5 s debounce times are unchanged). It starts acquiring and logging after hardware initialisation whether or not a network is up. Planning figure: 86,400 records a day, to be checked against the real record size and usable flash.

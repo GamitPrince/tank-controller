@@ -1,6 +1,6 @@
 # ADR-0009: CI and deployment: cloud blueprints, environments, deployment, AWS access, monitoring and security checks
 
-- Status: **Accepted.** Confirmed by the tech lead on 19 Nov 2026, including rule 7 (full tech lead authority) and its recorded downsides; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #17. Rule 7 is decided but not applied in GitHub: the rulesets' bypass list is still empty, so the tech lead's pull requests still need a second approval.
+- Status: **Accepted.** Confirmed by the tech lead on 19 Nov 2026, including rule 7 (full tech lead authority) and its recorded downsides; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #17. Rule 7 is decided but not applied in GitHub: the rulesets' bypass list is still empty, so the tech lead's pull requests still need a second approval. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 19 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-01 (repository and CI skeleton) and the cloud and dashboard stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
@@ -62,3 +62,13 @@ Rule 7 (first proposed as a lighter rule; changed by the tech lead on 19 Nov 202
 - ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0008
 - GitHub Workflow Guide (rulesets, CODEOWNERS, `ci.sh` and coverage rules)
 - GitHub plans page, checked 19 Nov 2026: protected branches and CODEOWNERS for private repositories are listed under the Team plan; environment approval rules are listed for public repositories on the Free plan; Actions minutes 2,000 (Free) and 3,000 (Team) a month
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Rule 7 reversed:** there is **no ruleset bypass list**. The tech lead is not exempt: pull requests, one approval from a collaborator other than the author, code-owner review (the EE on the safety folders) and the required checks apply to everyone. ADR-0005 decision 4's second-person safeguard on firmware signing applies to the tech lead too.
+2. **Repository visibility:** stays public (ADR-0001, revised in S-054).
+3. **Terraform** (decision 1 and "Not decided here"): Terraform, in `infrastructure/terraform/`. State in S3 with S3's native lock file; separate test and production state and resources; encryption, versioning and restricted IAM on the state bucket. State is never committed.
+4. **Container registry:** GitHub Container Registry. Images are tagged with the semantic version and the commit SHA (for example `v1.0.0` plus the SHA); release tags are never overwritten. ECR may be considered later. GHCR and Actions limits for the account are checked before relying on them.
+5. **CI checks:** cppcheck blocking and Zephyr caching (ADR-0003 amendments 2 and 3), through one dedicated story under normal review.

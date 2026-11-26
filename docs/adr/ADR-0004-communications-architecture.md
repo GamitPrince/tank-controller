@@ -1,6 +1,6 @@
 # ADR-0004: Communications architecture, data format and simulator
 
-- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #12.
+- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #12. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 2 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-02, P1-03, P1-04, P1-11 to P1-17
 - Deciders: GamitPrince (project manager / tech lead)
@@ -60,3 +60,14 @@ RSD FR-COM-01, 03, 04, 05 and NFR-01, 04, 05 require data to reach the cloud wit
 - RSD v0.2: FR-COM-01, 03, 04, 05; FR-SAF-04; NFR-01, 04, 05, 09, 10
 - Story cards: P1-02, 03, 04, 11 to 17, 19
 - ADR-0002, ADR-0003
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Decision 10, mass removed:** density-based mass is not calculated in Phase 1. The backend calculates level % and volume only; there is no density table. A future need is a new story and scope approval.
+2. **Decision 1, Modbus and OPC UA:** Modbus RTU and TCP (P1-11) and OPC UA (P1-13) are void for Phase 1. OPC UA is not deferred; any future need is a new scope decision.
+3. **Decision 5, shared library location:** `shared/link-protocol/` (see ADR-0003 amendment 1).
+4. **Topic and batching** (was "Not decided here"): devices publish to `tank/{device_id}/records`. A message carries five one-second records, sent every 5 s. Buffered records are replayed oldest first with their sequence numbers, CRC and delivery confirmation; unacknowledged records are kept and resumed after reconnect. Each device may publish only to its own topic (ADR-0005).
+5. **Startup:** the FRDM and the ESP32 start independently. The FRDM logs from boot; the ESP32 connects when it can, and the backlog goes out once it is connected.
+6. **`gateway/`** is removed from the repository (S-055).
