@@ -23,6 +23,7 @@
 #define LOCK_HOLD_MS 230U
 #define SETTLE_MS 10U
 #define STOP_SLACK_MS 20U
+#define STEADY_MS 160U
 #define LOOP_MA 12.0f
 #define LOOP_UA 12000
 
@@ -178,4 +179,36 @@ ZTEST(scan_service, test_build_and_append_errors_are_counted)
 	zassert_ok(tank_scan_service_stop(&svc));
 	zassert_true(st->append_errors >= 1U);
 	zassert_equal(st->scans, 0U);
+}
+
+static atomic_t changes_seen;
+
+static void count_change(void *ctx)
+{
+	ARG_UNUSED(ctx);
+	atomic_inc(&changes_seen);
+}
+
+ZTEST(scan_service, test_a_quality_change_calls_on_change_once)
+{
+	const struct tank_scan_service_inputs in = {.sources = &src,
+						    .bt = &bt,
+						    .lock = &inputs_lock,
+						    .log = &log,
+						    .on_change = count_change};
+	const struct tank_scan_service_config cfg = {.period_ms = PERIOD_MS, .sl = SL};
+	struct tank_ad4111_reading fault = {
+	    .current_ma = LOOP_MA, .channel = 1U, .adc_error = true};
+
+	atomic_set(&changes_seen, 0);
+	zassert_ok(tank_scan_service_start(&svc, &in, &cfg));
+	k_msleep(STEADY_MS);
+	zassert_equal(atomic_get(&changes_seen), 0, "steady scans wait for their batch");
+
+	zassert_ok(k_mutex_lock(&inputs_lock, K_FOREVER));
+	zassert_ok(tank_loop_level_update(&level, &fault, k_uptime_get_32()));
+	zassert_ok(k_mutex_unlock(&inputs_lock));
+	k_msleep(2U * PERIOD_MS + SETTLE_MS);
+	zassert_equal(atomic_get(&changes_seen), 1, "one change, one call");
+	zassert_equal(tank_scan_service_stats(&svc)->changes, 1U);
 }

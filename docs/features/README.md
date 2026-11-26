@@ -39,13 +39,14 @@ Started 26 Nov 2026 (S-052) by back-filling the features merged so far. Each row
 | Firmware application: boot id, flash log, all 23 inputs and the scan thread at boot, network or not | P1-12, P1-14 | S-060, PR #124 | `src/app/tank_app*`, `app/`, `cmake/` | `tests/app_tank_app` |
 | Application forwards the log to the ESP32; device ID is the factory unique ID in hex | P1-12 | S-061, PR #126 | `src/app/device_id*`, `src/app/tank_app*`, `app/src/main.c` | `tests/app_tank_app` |
 | Up to five records per link frame (the S-062 batch), one DELIVERED per frame, polling every 5 s | P1-12 | S-063, PR #130 | `src/communications/uplink*`, `shared/link-protocol/link_frame.h` | `tests/communications_uplink`, `tests/hardware_esp32_uart` |
+| A contact or quality change is sent at once instead of waiting for the 5 s batch (NFR-01) | P1-12 | S-065 | `src/record/scan_builder*`, `src/record/scan_service*`, `src/communications/uplink_service*` | `tests/record_scan_service`, `tests/app_tank_app` |
 
 ## ESP32 firmware
 
 | Feature | Phase 1 story | Delivered by | Code | Tests |
 | --- | --- | --- | --- | --- |
 | ESP32 end of the UART link | P1-12 | S-047, PR #98 | `esp32/components/link_endpoint/` | `esp32/tests/` |
-| ESP32 publishes each FRDM batch as one QoS 1 MQTT message on `tank/{device_id}/records`, confirming only after the PUBACK | P1-12 | S-064 | `esp32/components/publisher/` | `esp32/tests/test_publisher.c` |
+| ESP32 publishes each FRDM batch as one QoS 1 MQTT message on `tank/{device_id}/records`, confirming only after the PUBACK | P1-12 | S-064, PR #132 | `esp32/components/publisher/` | `esp32/tests/test_publisher.c` |
 
 ## Not yet in the registry
 

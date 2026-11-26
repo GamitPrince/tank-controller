@@ -10,6 +10,11 @@
  * Logging does not depend on the network (decided 26 Nov 2026): the uplink
  * service (S-049) forwards the log on its own thread, at a lower priority.
  *
+ * After each scan it logs, the service compares it with the one logged before
+ * (tank_scan_prompt_change(), S-065). When a contact or a quality changed it
+ * calls on_change, so the uplink can send at once instead of waiting for its
+ * 5 s batch (NFR-01).
+ *
  * seq starts at 1 for each boot and advances once per scan built, so a scan
  * the flash log failed to store shows up as a gap in seq.
  *
@@ -45,6 +50,9 @@ struct tank_scan_service_inputs {
 	 */
 	struct k_mutex *lock;
 	struct tank_flash_log *log;
+	/* Called after a scan with a prompt change is logged; may be NULL. */
+	void (*on_change)(void *ctx);
+	void *change_ctx;
 };
 
 struct tank_scan_service_stats {
@@ -53,6 +61,8 @@ struct tank_scan_service_stats {
 	uint32_t append_errors;
 	/* Grid points skipped because a scan ran past its slot. */
 	uint32_t skipped;
+	/* Logged scans with a prompt change (S-065). */
+	uint32_t changes;
 	int last_error;
 };
 
@@ -67,6 +77,9 @@ struct tank_scan_service {
 	struct k_sem wake;
 	uint32_t seq;
 	struct tank_scan scan;
+	/* The last scan logged, to compare the next one with. */
+	struct tank_scan last_logged;
+	bool have_last;
 	struct tank_scan_service_stats stats;
 };
 

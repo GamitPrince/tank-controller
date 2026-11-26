@@ -67,6 +67,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The ESP32 publisher (S-064): each RECORD the FRDM sends, one batch of up to five records, is published unchanged at QoS 1 as one MQTT message on `tank/{device_id}/records`, and DELIVERED goes back to the FRDM only when that message's PUBACK arrives. A failed publish or a stale PUBACK confirms nothing, so the FRDM keeps the records. Host-tested logic; the ESP-IDF MQTT glue comes with the first ESP-IDF build.
 
+- A change goes out at once (S-065, NFR-01): when a logged scan differs from the one before in any contact's value or any reading's quality, the scan service kicks the uplink service, which polls straight away instead of finishing its 5 s wait. Analogue noise does not count, so steady readings still travel five to a frame.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.

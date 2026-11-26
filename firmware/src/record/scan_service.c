@@ -32,6 +32,20 @@ int64_t tank_scan_service_next_deadline(int64_t deadline_ms, int64_t now_ms, uin
 	return next;
 }
 
+/* Note a logged scan, and tell on_change when it should go out at once. */
+static void note_logged(struct tank_scan_service *svc)
+{
+	if (svc->have_last && tank_scan_prompt_change(&svc->last_logged, &svc->scan,
+						      svc->in.sources->contact_count)) {
+		svc->stats.changes++;
+		if (svc->in.on_change != NULL) {
+			svc->in.on_change(svc->in.change_ctx);
+		}
+	}
+	svc->last_logged = svc->scan;
+	svc->have_last = true;
+}
+
 static void take_scan(struct tank_scan_service *svc, uint32_t now_ms)
 {
 	int err;
@@ -57,6 +71,7 @@ static void take_scan(struct tank_scan_service *svc, uint32_t now_ms)
 		return;
 	}
 	svc->stats.scans++;
+	note_logged(svc);
 }
 
 static void service_main(void *p1, void *p2, void *p3)

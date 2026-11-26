@@ -238,3 +238,18 @@ ZTEST(uplink_service, test_scan_thread_appends_while_service_forwards)
 	zassert_equal(cloud.received, CONCURRENT_SCANS, "each scan exactly once");
 	zassert_equal(tank_flash_log_lost_scans(&log), 0U);
 }
+
+ZTEST(uplink_service, test_a_kick_cuts_the_idle_wait_short)
+{
+	struct tank_uplink_service never_started = {0};
+
+	start(LONG_MS, LONG_MS);
+	k_msleep(STEP_MS);
+	zassert_equal(tank_uplink_service_stats(&svc)->polls, 1U,
+		      "now waiting out the idle period");
+	append_scans(1U, BATCH_CAP);
+	zassert_ok(tank_uplink_service_kick(&svc));
+	zassert_true(wait_for(BATCH_CAP) <= ARRIVAL_SLACK_MS, "the kick did not wake the poll");
+	zassert_equal(tank_uplink_service_kick(NULL), -EINVAL);
+	zassert_equal(tank_uplink_service_kick(&never_started), -EINVAL);
+}

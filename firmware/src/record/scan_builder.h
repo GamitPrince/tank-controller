@@ -20,6 +20,7 @@
 #ifndef TANK_RECORD_SCAN_BUILDER_H_
 #define TANK_RECORD_SCAN_BUILDER_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -53,5 +54,17 @@ struct tank_scan_sources {
  */
 int tank_scan_build(const struct tank_scan_sources *src, const struct tank_boot_time *bt,
 		    uint32_t sl, uint32_t seq, uint32_t up_ms, struct tank_scan *out);
+
+/*
+ * True when s should go out at once instead of waiting for its batch (S-065,
+ * NFR-01): it differs from prev in any reading's quality or in whether it
+ * carries a value, or in the value of one of its last contact_count readings,
+ * the contacts, which the builder puts last. Analogue values, which move every
+ * scan, do not count. Scans that do not line up (another count or id), or a
+ * contact_count above the scan's count, count as changed; a NULL scan never
+ * does.
+ */
+bool tank_scan_prompt_change(const struct tank_scan *prev, const struct tank_scan *s,
+			     size_t contact_count);
 
 #endif /* TANK_RECORD_SCAN_BUILDER_H_ */

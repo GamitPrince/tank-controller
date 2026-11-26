@@ -52,7 +52,7 @@ struct tank_uplink_service {
 	struct k_thread thread;
 	k_tid_t tid;
 	atomic_t stopping;
-	/* Given by stop, so a sleeping thread wakes at once. */
+	/* Given by stop or kick, so a sleeping thread wakes at once. */
 	struct k_sem wake;
 	struct tank_uplink_service_stats stats;
 };
@@ -77,6 +77,14 @@ int tank_uplink_service_start(struct tank_uplink_service *svc, const struct tank
  * or -EINVAL when svc is not running.
  */
 int tank_uplink_service_stop(struct tank_uplink_service *svc);
+
+/*
+ * Poll at once instead of finishing the current wait (S-065): the scan
+ * service calls this when a scan with a prompt change was logged. A kick
+ * during a poll makes the next poll start straight after it. Returns 0, or
+ * -EINVAL when svc is not running.
+ */
+int tank_uplink_service_kick(struct tank_uplink_service *svc);
 
 /* The service's counters, or NULL when svc is NULL. */
 const struct tank_uplink_service_stats *
