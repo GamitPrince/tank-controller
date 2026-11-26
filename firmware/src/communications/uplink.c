@@ -6,9 +6,12 @@
 
 #include <errno.h>
 
-/* A record that could outgrow one RECORD frame must not build. */
-_Static_assert(TANK_RECORD_CBOR_MAX <= TANK_LINK_PAYLOAD_MAX,
-	       "a CBOR record must fit in one RECORD frame");
+/* A full batch that could outgrow one RECORD frame must not build. */
+_Static_assert(TANK_UPLINK_FRAME_PAYLOAD_MAX <= TANK_LINK_PAYLOAD_MAX,
+	       "a batch of records must fit in one RECORD frame");
+
+/* CBOR major type 4 (array) with the count in the initial byte. */
+#define CBOR_ARRAY_HEAD 0x80U
 
 int tank_uplink_init(struct tank_uplink *up, const char *dev_id,
 		     const struct tank_link_sender_config *link_cfg,
@@ -52,21 +55,49 @@ static int await_confirmation(struct tank_uplink *up)
 	}
 }
 
-static int send_item(struct tank_uplink *up, const struct tank_log_item *item)
+/*
+ * Pack up to max leading items into up->frame as a batch. Returns how many
+ * were packed (0 when the first cannot be encoded) and sets *len.
+ */
+static size_t pack_frame(struct tank_uplink *up, const struct tank_log_item *items, size_t max,
+			 size_t *len)
 {
-	size_t len = tank_record_cbor_encode_item(up->dev_id, item, up->record, sizeof(up->record));
+	size_t used = 1U;
+	size_t n = 0U;
+
+	while (n < max) {
+		size_t rec = tank_record_cbor_encode_item(up->dev_id, &items[n], &up->frame[used],
+							  sizeof(up->frame) - used);
+
+		if (rec == 0U) {
+			up->stats.encode_failures++;
+			break;
+		}
+		used += rec;
+		n++;
+	}
+	up->frame[0] = (uint8_t)(CBOR_ARRAY_HEAD | n);
+	*len = used;
+	return n;
+}
+
+/* Send one frame of up to max items. Returns how many it carried, or < 0. */
+static int send_frame(struct tank_uplink *up, const struct tank_log_item *items, size_t max)
+{
+	size_t len;
+	size_t n = pack_frame(up, items, max, &len);
 	int rc;
 
-	if (len == 0U) {
-		up->stats.encode_failures++;
+	if (n == 0U) {
 		return -EINVAL;
 	}
-	rc = tank_link_sender_send(&up->sender, up->record, len, up->io.now_fn(up->io.ctx));
+	rc = tank_link_sender_send(&up->sender, up->frame, len, up->io.now_fn(up->io.ctx));
 	if (rc != 0) {
 		return rc;
 	}
 	up->stats.sent++;
-	return await_confirmation(up);
+	rc = await_confirmation(up);
+	return (rc != 0) ? rc : (int)n;
 }
 
 int tank_uplink_send(void *ctx, const struct tank_log_item *items, size_t count)
@@ -79,11 +110,18 @@ int tank_uplink_send(void *ctx, const struct tank_log_item *items, size_t count)
 		return -EINVAL;
 	}
 	while (done < count) {
-		rc = send_item(up, &items[done]);
-		if (rc != 0) {
+		const size_t left = count - done;
+
+		rc = send_frame(up, &items[done],
+				(left < TANK_UPLINK_BATCH_MAX) ? left : TANK_UPLINK_BATCH_MAX);
+		if (rc <= 0) {
 			break;
 		}
-		done++;
+		done += (size_t)rc;
+		if ((size_t)rc < TANK_UPLINK_BATCH_MAX && done < count) {
+			/* An item that cannot be encoded ended this frame early. */
+			break;
+		}
 	}
 	return (done > 0U) ? (int)done : rc;
 }

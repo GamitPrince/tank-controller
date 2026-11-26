@@ -31,8 +31,11 @@
 /* S-039: a full scan every 60, the delivered position persisted every 60 acks. */
 #define LOG_FULL_INTERVAL 60U
 #define LOG_ACK_PERSIST_INTERVAL 60U
-/* S-049: poll every second when caught up, every 5 s while the link is down. */
-#define UPLINK_IDLE_MS 1000U
+/*
+ * Poll every 5 s when caught up, so a frame holds five one-second records
+ * (decided 26 Nov 2026, S-063); every 5 s while the link is down (S-049).
+ */
+#define UPLINK_IDLE_MS 5000U
 #define UPLINK_RETRY_MS 5000U
 
 static struct tank_app app;
@@ -57,7 +60,9 @@ int main(void)
 	    .clock_agreement_limit_ms = CLOCK_AGREEMENT_LIMIT_MS,
 	    .esp32_uart = have_id ? ESP32_UART : NULL,
 	    .device_id = have_id ? device_id : NULL,
-	    .uplink = {.idle_ms = UPLINK_IDLE_MS, .retry_ms = UPLINK_RETRY_MS},
+	    .uplink = {.idle_ms = UPLINK_IDLE_MS,
+		       .retry_ms = UPLINK_RETRY_MS,
+		       .full_batch = TANK_UPLINK_BATCH_MAX},
 	};
 
 	sys_rand_get(boot_id, sizeof(boot_id));

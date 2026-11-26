@@ -4,7 +4,7 @@ The FRDM-to-ESP32 UART link library (ADR-0004 decisions 4 and 5). Both boards co
 
 | File | What it does | Story |
 | --- | --- | --- |
-| `link_frame.h/.c` | Frames: COBS framing, version, type, sequence number, CRC-16/CCITT-FALSE; encode and a streaming decoder that resyncs after damage | S-042 |
+| `link_frame.h/.c` | Frames: COBS framing, version, type, sequence number, CRC-16/CCITT-FALSE; encode and a streaming decoder that resyncs after damage. Payloads up to 5,120 bytes, room for a batch of five records | S-042, S-063 |
 | `link_sender.h/.c` | Stop-and-wait sender on the FRDM: resends a RECORD until its DELIVERED arrives, gives up after a set number of attempts | S-043, S-045 |
 | `link_receiver.h/.c` | Duplicate-safe receiver on the ESP32: passes each RECORD up once and re-confirms a repeat | S-043 |
 

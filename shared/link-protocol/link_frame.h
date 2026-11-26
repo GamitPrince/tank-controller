@@ -26,8 +26,11 @@
 #include <stdint.h>
 
 #define TANK_LINK_VERSION 1U
-/* [Confirm] Enough for a catch-up batch of delta-encoded scans. */
-#define TANK_LINK_PAYLOAD_MAX 1024U
+/*
+ * Room for one batch (S-062, S-063): five records of up to about 1,004 bytes
+ * each (record_cbor.h, worst case) and the array header.
+ */
+#define TANK_LINK_PAYLOAD_MAX 5120U
 #define TANK_LINK_HEADER_LEN 4U
 #define TANK_LINK_CRC_LEN 2U
 #define TANK_LINK_BODY_MAX (TANK_LINK_HEADER_LEN + TANK_LINK_PAYLOAD_MAX + TANK_LINK_CRC_LEN)

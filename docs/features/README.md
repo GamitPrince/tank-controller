@@ -37,7 +37,8 @@ Started 26 Nov 2026 (S-052) by back-filling the features merged so far. Each row
 | One-second scan record built from the 23 inputs (scaled value, quality, age, boot-time header) | P1-12 | S-058, PR #120 | `src/record/scan_builder*` | `tests/record_scan_builder` |
 | A scan every second, logged to flash on a drift-free grid | P1-12, P1-14 | S-059, PR #122 | `src/record/scan_service*` | `tests/record_scan_service` |
 | Firmware application: boot id, flash log, all 23 inputs and the scan thread at boot, network or not | P1-12, P1-14 | S-060, PR #124 | `src/app/tank_app*`, `app/`, `cmake/` | `tests/app_tank_app` |
-| Application forwards the log to the ESP32; device ID is the factory unique ID in hex | P1-12 | S-061 | `src/app/device_id*`, `src/app/tank_app*`, `app/src/main.c` | `tests/app_tank_app` |
+| Application forwards the log to the ESP32; device ID is the factory unique ID in hex | P1-12 | S-061, PR #126 | `src/app/device_id*`, `src/app/tank_app*`, `app/src/main.c` | `tests/app_tank_app` |
+| Up to five records per link frame (the S-062 batch), one DELIVERED per frame, polling every 5 s | P1-12 | S-063 | `src/communications/uplink*`, `shared/link-protocol/link_frame.h` | `tests/communications_uplink`, `tests/hardware_esp32_uart` |
 
 ## ESP32 firmware
 

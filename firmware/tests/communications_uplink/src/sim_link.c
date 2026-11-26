@@ -53,6 +53,8 @@ static void log_record(const struct tank_link_msg *msg)
 		sim.log_len[sim.delivered] = msg->payload_len;
 	}
 	sim.delivered++;
+	/* A batch's CBOR array header holds its record count (S-063). */
+	sim.records += msg->payload[0] & 0x1FU;
 }
 
 int sim_link_write(void *ctx, const uint8_t *bytes, size_t len)

@@ -63,6 +63,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The record schema gains the batch message (S-062): `batch = [1*5 message]`, one to five complete records, oldest first, which the FRDM packs into one link frame and the ESP32 publishes as one MQTT message on `tank/{device_id}/records`. A single record stays valid on its own, and `v` stays 1.
 
+- The FRDM packs up to five records into one link frame (S-063): the uplink sends the S-062 batch, oldest first, and one DELIVERED confirms the frame; the link payload limit rises from 1,024 to 5,120 bytes to fit five worst-case records. The uplink service treats a part batch as caught up, and the application polls every 5 s, so steady state is one frame of five records every 5 s and a backlog drains frame after frame.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
