@@ -2,7 +2,7 @@
 
 - Story ID: `[Confirm]` — not yet issued.
 - Epic: E6 Documentation and release. Points: 3. Priority: Must. Component: docs. Review flag: none.
-- Status: **Partly done.**
+- Status: **Partly done.** The setup guide (`docs/setup-guide.md`) and the Feature Registry (`docs/features/README.md`) were added in S-052, which also took the split and the two open questions below as recommended. The runbook, onboarding note and second-person bring-up test are left for a second story once the cloud exists.
 
 ## Goal
 A developer who did not build the system can bring it up and run it from the written documents.
