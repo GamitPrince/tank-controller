@@ -9,7 +9,7 @@ set(SAFETY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/safety)
 set(FIRMWARE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(SIGNAL_LIST ${FIRMWARE_DIR}/../interfaces/signals-v1.yaml)
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
-set(GENERATED_HEADER ${GENERATED_DIR}/tank_safety_signals.h)
+set(GENERATED_HEADER ${GENERATED_DIR}/tank_alarm_signals.h)
 
 # The signal list in interfaces/ is the contract (ADR-0004 decision 9), so the
 # ids, channels, contact senses and debounce figures are generated from it at
@@ -25,7 +25,7 @@ add_custom_command(
   VERBATIM
 )
 
-add_custom_target(tank_safety_signals DEPENDS ${GENERATED_HEADER})
+add_custom_target(tank_alarm_signals DEPENDS ${GENERATED_HEADER})
 
 target_sources(app PRIVATE
   src/main.c
@@ -34,4 +34,4 @@ target_sources(app PRIVATE
 )
 
 target_include_directories(app PRIVATE ${SAFETY_DIR} ${GENERATED_DIR})
-add_dependencies(app tank_safety_signals)
+add_dependencies(app tank_alarm_signals)

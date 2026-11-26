@@ -1,0 +1,14 @@
+sample:
+  name: Tank-AI firmware application
+  description: >-
+    The FRDM-MCXN947 application (S-060). Built for native_sim, build only,
+    until the board overlay and pin mapping exist.
+common:
+  build_only: true
+  platform_allow:
+    - native_sim
+    - native_sim/native/64
+tests:
+  app.tank_firmware:
+    tags:
+      - app
