@@ -51,7 +51,7 @@ Active team: GamitPrince (owner, tech lead), gamitriyan-del (EE), prinz-assists.
 
 Status as of 21 Nov 2026: **ADR-0003 to 0009 are merged** into `docs/adr/` (PRs #11 to #17, stories S-003 to S-009), each approved by a collaborator other than the author. The ADR files are the detail; the table below is a summary, so read the file when the detail matters.
 
-**Known wart:** those seven files still carry status lines saying "Not yet pushed to GitHub" and "becomes Accepted when one collaborator other than the author approves the PR". That approval happened and they merged, so the status lines are wrong and correcting them is its own story. Treat the merged ADRs as decided. ADR-0009's rule 7 (tech lead on the ruleset bypass list) is **not** applied in GitHub; the bypass list is empty.
+**Status lines corrected (S-051, 26 Nov 2026):** the seven files now say **Accepted**, with the approving collaborator and the PR that merged each. Treat the merged ADRs as decided. ADR-0009's rule 7 (tech lead on the ruleset bypass list) is **not** applied in GitHub; the bypass list is empty.
 
 **ADR-0001** (public repo) is in the repo as `docs/adr/0001-public-repository-on-github-free.md`, status Proposed, with out-of-date points (hardware files, tech lead authority). **ADR-0002 (hardware) is not written**; it waits for the EE and **you must not write it**, even though section 5 now records the inventory the EE supplied. `PUSH-GUIDE.md` and an ADR index exist only on the tech lead's machine and were never pushed; `PUSH-GUIDE.md` has a wrong PR-title scope (`docs(adr)`) and an unverified `Refs` suggestion, so do not follow it.
 

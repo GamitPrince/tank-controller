@@ -1,6 +1,6 @@
 # ADR-0003: Firmware framework, language, structure and test tooling
 
-- Status: Confirmed by the tech lead on 17 Nov 2026; becomes Accepted when one collaborator other than the author approves the PR (the EE reviews the safety-related points). Not yet pushed to GitHub.
+- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #11.
 - Date: 30 Oct 2026, amended 2 Nov 2026 for the communications structure of ADR-0004
 - Story: P1-00 (issue S-002)
 - Deciders: GamitPrince (project manager / tech lead)
