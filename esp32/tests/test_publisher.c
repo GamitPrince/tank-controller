@@ -64,8 +64,11 @@ static int fake_uart_write(void *ctx, const uint8_t *bytes, size_t len)
 	for (size_t i = 0U; i < len; i++) {
 		if (tank_link_decoder_push(&dec, bytes[i], &msg) == TANK_LINK_RX_FRAME) {
 			TEST_ASSERT_EQUAL_INT(TANK_LINK_DELIVERED, msg.type);
+			TEST_ASSERT_EQUAL_size_t(TANK_LINK_DELIVERED_PAYLOAD_LEN, msg.payload_len);
 			seen.delivered++;
-			seen.delivered_seq = msg.seq;
+			/* The confirmed seq is the payload, low byte first (S-042). */
+			seen.delivered_seq =
+			    (uint16_t)(msg.payload[0] | ((uint16_t)msg.payload[1] << 8U));
 		}
 	}
 	return 0;
