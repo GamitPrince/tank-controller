@@ -59,6 +59,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The firmware application (S-060): `firmware/app/` boots with a fresh random boot id, mounts the flash log on the devicetree's `tank,log-partition`, sets up all 23 Phase 1 inputs from the signal-list tables and starts the one-second scan thread, network or not. Built for native_sim in CI until the board overlay exists. Until the pins are read, every reading goes out without a value (unconfigured or fault). The P1-09 alarm table's generated header is now `tank_alarm_signals.h`, with its own include guard, so both safety tables build in one application.
 
+- The application forwards its flash log to the ESP32 (S-061): after scanning starts, it brings up the ESP32 UART from the devicetree's `tank,esp32-uart`, the uplink, the log forwarder (batch 16) and the uplink service (idle 1 s, retry 5 s). Scanning never waits for the link. Records carry the device ID, the MCU's factory unique ID read with hwinfo and written as lowercase hex (tech lead, 26 Nov 2026); without one the device still logs, just without forwarding.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.

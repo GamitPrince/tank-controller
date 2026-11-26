@@ -4,8 +4,10 @@
  * After hardware initialisation the application sets up every Phase 1 input
  * from the signal-list tables, mounts the flash log and starts the scan
  * service (S-059), whether or not a network is up (decided 26 Nov 2026).
- * Nothing here waits for the ESP32 or the cloud: records stay in the flash
- * log until the uplink, wired in a later story, forwards them.
+ * Only then, and only when a UART to the ESP32 is given, does it start the
+ * uplink (S-061): the log forwarder (S-039) and the uplink (S-045) on the
+ * uplink service thread (S-049). Scanning never waits for it; records stay in
+ * the flash log until the ESP32 confirms them.
  *
  * Until the acquisition stories feed the inputs from the pins, no input is
  * ever sampled, so every reading goes out as unconfigured or fault: honest,
@@ -22,14 +24,20 @@
 #include <zephyr/kernel.h>
 
 #include "boot_time.h"
+#include "esp32_uart.h"
 #include "flash_log.h"
+#include "log_forwarder.h"
 #include "scan_builder.h"
 #include "scan_service.h"
+#include "uplink.h"
+#include "uplink_service.h"
 
 /* Room for the inputs, above the Phase 1 signal list's 2, 6 and 15. */
 #define TANK_APP_MAX_LEVELS 4U
 #define TANK_APP_MAX_TEMPERATURES 8U
 #define TANK_APP_MAX_CONTACTS 16U
+/* Scans the forwarder reads per send (S-039: 16 to 32). */
+#define TANK_APP_UPLINK_BATCH 16U
 
 struct tank_app_config {
 	/* TANK_BOOT_ID_LEN random bytes, fresh for every boot (S-038). */
@@ -38,6 +46,11 @@ struct tank_app_config {
 	uint32_t scan_period_ms;
 	/* Largest disagreement between two clock syncs before the warning. */
 	uint32_t clock_agreement_limit_ms;
+	/* The UART to the ESP32, or NULL to log without forwarding. */
+	const struct device *esp32_uart;
+	/* The ID records are sent with (device_id.h); needed with esp32_uart. */
+	const char *device_id;
+	struct tank_uplink_service_config uplink;
 };
 
 /* Treat the fields as private. */
@@ -52,18 +65,26 @@ struct tank_app {
 	/* Shared with the threads that will update the inputs and the clock. */
 	struct k_mutex inputs_lock;
 	struct tank_scan_service scan;
+	struct tank_esp32_uart uart;
+	struct tank_uplink up;
+	struct tank_log_item batch[TANK_APP_UPLINK_BATCH];
+	struct tank_log_forwarder fw;
+	struct tank_uplink_service forwarding;
 };
 
 /*
  * Set up the inputs and the boot time, mount the flash log and start the scan
- * service. app must be zeroed (a static object is) or stopped. Returns 0;
- * -EINVAL for a NULL argument; -EALREADY while app is running; -ENOSPC if the
- * signal list has more inputs than TANK_APP_MAX_*; or the error of the step
- * that failed.
+ * service, then the uplink when esp32_uart is set. app must be zeroed (a
+ * static object is) or stopped. Returns 0; -EINVAL for a NULL argument or an
+ * esp32_uart without a device_id; -EALREADY while app is running; -ENOSPC if
+ * the signal list has more inputs than TANK_APP_MAX_*; or the error of the
+ * step that failed. Scanning keeps running when only the uplink failed.
  */
 int tank_app_start(struct tank_app *app, const struct tank_app_config *cfg);
 
-/* Stop the scan service. Returns 0, or -EINVAL when app is not running. */
+/* Stop the uplink and the scan service. Returns 0, or -EINVAL when app is
+ * not running.
+ */
 int tank_app_stop(struct tank_app *app);
 
 /* What the application reads each scan, or NULL when app is NULL. */
