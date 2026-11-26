@@ -24,7 +24,7 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 
 ## Status against the story card
 
-Updated 25 Nov 2026 (S-046) from the merged pull requests. "S-0xx" is the story issue that delivered the work.
+Updated 26 Nov 2026 (S-050) from the merged pull requests. "S-0xx" is the story issue that delivered the work.
 
 | ID | Story | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ Updated 25 Nov 2026 (S-046) from the merged pull requests. "S-0xx" is the story 
 | P1-09 | Alarm and trip status | 3 | **Done** (S-031) | Channels 10 to 15. **Scope cut: no over-temp, e-stop or fire/gas** |
 | P1-10 | Prove no write path to the safety chain | 2 | Not started | EE. **Record cannot live in this public repo** |
 | P1-11 | Poll over 4-20 mA, Modbus RTU and TCP | 5 | **Largely void, undecided** | ADR-0004 removes the gateway and Modbus; the 4-20 mA part is done in P1-04. Needs a backlog decision |
-| P1-12 | Publish over MQTT | 3 | **In progress** | FRDM side done: UART link frames (S-042), delivery confirmation (S-043), CBOR records (S-044), flash log forwarded over the link (S-045). Left: the UART driver glue, the ESP32 firmware (TLS, MQTT, 4G; where it lives in the repo is undecided) and a broker, which waits on the cloud gates |
+| P1-12 | Publish over MQTT | 3 | **In progress** | FRDM half done: UART link frames (S-042), delivery confirmation (S-043), CBOR records (S-044), flash log forwarded over the link (S-045), the Zephyr UART driver (S-048) and the uplink service thread (S-049). ESP32 end of the link in `esp32/` (S-047). Left: the ESP32's Wi-Fi, TLS, MQTT and 4G code (needs the real board), the FRDM board overlay (waits on the EE's pin mapping) and a broker, which waits on the cloud gates |
 | P1-13 | OPC UA | 5 | **Blocked on a decision** | No ADR covers OPC UA. Decide Phase 1 or Phase 2 |
 | P1-14 | Buffer through an outage | 5 | **Done** (S-039, S-040, S-041) | FRDM flash log (ADR-0004 decision 12); a gap record tells the cloud about scans lost to a full log; 24 h outage fits the confirmed 8 MB W25Q64JV |
 | P1-15 | Clock sync | 2 | **Done** (S-038) | SNTP plus boot-relative time with boot id and "time not yet known" flag (ADR-0004 decision 11) |
@@ -93,7 +93,7 @@ None open. `AGENTS.md` section 5 was corrected to match the EE's inventory in S-
 
 1. **Epic E3 (P1-11 to P1-16, 23 points) was written for a separate gateway that ADR-0004 removed.** Six of 27 stories need rewriting or dropping, not just re-pointing. The `gateway/` folder is obsolete too.
 2. **The story card predates ADR-0004 to ADR-0009.** It still says "all three developers" review `interfaces/` (superseded by S-010), register map (superseded by the YAML signal list), Modbus, OPC UA and VPN.
-3. **Stories the ADRs now require that the card does not contain:** ESP32 communications firmware (ADR-0006 says a story is "to be created"), device certificate and CA provisioning plus the QR claim flow (ADR-0005), Terraform or OpenTofu blueprints and the test and live environments (ADR-0009), the early cloud test that gates ADR-0007. The 107-point estimate is therefore low.
+3. **Stories the ADRs now require that the card does not contain:** ESP32 communications firmware (ADR-0006; started under P1-12 as S-047, the Wi-Fi, TLS, MQTT and 4G code still to come), device certificate and CA provisioning plus the QR claim flow (ADR-0005), Terraform or OpenTofu blueprints and the test and live environments (ADR-0009), the early cloud test that gates ADR-0007. The 107-point estimate is therefore low.
 4. **Known repo chores not on the card:** correct the seven merged ADR status lines; decide the fate of `gateway/`. Renaming `gitattributes` to `.gitattributes` is done (CHORE-02, S-025), and `pr-policy` reading labels from the event payload is specced as CHORE-03 (S-024).
 5. The sprint plan's point totals no longer hold once 1 to 3 are settled.
 
