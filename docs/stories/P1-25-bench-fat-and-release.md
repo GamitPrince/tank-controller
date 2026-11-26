@@ -39,5 +39,5 @@ Phase 2 features. Site installation and commissioning.
 ## Open questions
 - `[Confirm]` Does `sys-v0.1.0` fall under the protected tag pattern?
 - `[Confirm]` Which Should stories, if any, must be in `v0.1.0`? P1-08 and P1-23 are Shoulds.
-- `[Confirm]` Who signs off the FAT? `AGENTS.md` records that the QA sign-off owner is **not assigned**.
+- FAT sign-off (decided 26 Nov 2026): prinz-assists signs QA, independent of the author; the EE signs safety and hardware validation; GamitPrince gives final Phase 1 acceptance.
 - `[Confirm]` Is the pilot-site hardware the first revision, and which sensors are available for the bench?

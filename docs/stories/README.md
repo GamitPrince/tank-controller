@@ -24,7 +24,7 @@ Files are named by the story card's temporary `P1-xx` IDs, not `S-0xx`. Section 
 
 ## Status against the story card
 
-Updated 26 Nov 2026 (S-050) from the merged pull requests. "S-0xx" is the story issue that delivered the work.
+Updated 26 Nov 2026 (S-053) from the merged pull requests and the tech lead's decision review of that day (`S-053-record-26-nov-decisions.md`). "S-0xx" is the story issue that delivered the work.
 
 | ID | Story | Pts | Status | Note |
 | --- | --- | --- | --- | --- |
@@ -32,16 +32,16 @@ Updated 26 Nov 2026 (S-050) from the merged pull requests. "S-0xx" is the story 
 | P1-01 | Repo, protection, PR template, CI skeleton | 3 | **Done** | Residual `ci.sh` work done as **CHORE-01** (S-015) |
 | P1-02 | Simulator | 5 | **Done** (S-018) | Every signal in the list, fault injection, outage replay with original timestamps |
 | P1-03 | Signal list v1 | 3 | **Done** (S-017) | `interfaces/signals-v1.yaml` and `records.cddl`; PT100 class and channel 16 recorded in S-023 |
-| P1-04 | Radar level, volume, mass | 5 | **Partly done** | Firmware reads radar and pressure 4-20 mA (S-034). Level %, volume and mass move to the cloud (ADR-0004 decision 10): specced in S-035 and S-036, **not built**; it waits on the cloud (P1-17) and on real density data (S-037, open) |
+| P1-04 | Radar level, volume, mass | 5 | **Partly done** | Firmware reads radar and pressure 4-20 mA (S-034). Level % and volume move to the cloud (ADR-0004 decision 10): specced in S-035 and S-036, **not built**. **Density-based mass removed from Phase 1** (26 Nov 2026); S-037 closed |
 | P1-05 | HH and LL switch status | 3 | **Done** (S-022) | Channels 1 and 2, normally closed, 200 ms, in `firmware/src/safety/` |
 | P1-06 | Multi-zone PT100 | 5 | **Done** (S-032) | Six sensors, 2 upper / 2 middle / 2 bottom at 180 degrees, read independently |
 | P1-07 | Heater and thermal-oil temps | ~~3~~ | **VOID** | No thermal oil, no spare PT100s. Points returned |
 | P1-08 | Ambient and wind | ~~2~~ | **VOID** | No ambient sensor, no wind sensor. Points returned |
 | P1-09 | Alarm and trip status | 3 | **Done** (S-031) | Channels 10 to 15. **Scope cut: no over-temp, e-stop or fire/gas** |
 | P1-10 | Prove no write path to the safety chain | 2 | Not started | EE. **Record cannot live in this public repo** |
-| P1-11 | Poll over 4-20 mA, Modbus RTU and TCP | 5 | **Largely void, undecided** | ADR-0004 removes the gateway and Modbus; the 4-20 mA part is done in P1-04. Needs a backlog decision |
+| P1-11 | Poll over 4-20 mA, Modbus RTU and TCP | ~~5~~ | **VOID** (26 Nov 2026) | Modbus RTU and TCP excluded from Phase 1; the 4-20 mA part is done in P1-04. Points returned |
 | P1-12 | Publish over MQTT | 3 | **In progress** | FRDM half done: UART link frames (S-042), delivery confirmation (S-043), CBOR records (S-044), flash log forwarded over the link (S-045), the Zephyr UART driver (S-048) and the uplink service thread (S-049). ESP32 end of the link in `esp32/` (S-047). Left: the ESP32's Wi-Fi, TLS, MQTT and 4G code (needs the real board), the FRDM board overlay (waits on the EE's pin mapping) and a broker, which waits on the cloud gates |
-| P1-13 | OPC UA | 5 | **Blocked on a decision** | No ADR covers OPC UA. Decide Phase 1 or Phase 2 |
+| P1-13 | OPC UA | ~~5~~ | **VOID** (26 Nov 2026) | Not deferred: no customer requirement found. A future need is a new story. Points returned |
 | P1-14 | Buffer through an outage | 5 | **Done** (S-039, S-040, S-041) | FRDM flash log (ADR-0004 decision 12); a gap record tells the cloud about scans lost to a full log; 24 h outage fits the confirmed 8 MB W25Q64JV |
 | P1-15 | Clock sync | 2 | **Done** (S-038) | SNTP plus boot-relative time with boot id and "time not yet known" flag (ADR-0004 decision 11) |
 | P1-16 | Remote access with no inbound ports | 3 | Not started | Rescoped: ADR-0005 says no VPN in Phase 1, so the story proves outbound-only access instead |
@@ -49,15 +49,15 @@ Updated 26 Nov 2026 (S-050) from the merged pull requests. "S-0xx" is the story 
 | P1-18 | Threshold alarms with audit trail | 5 | Not started | Cloud; follows P1-17 |
 | P1-19 | Stale-data flag | 3 | Not started | Quality and age already travel in every record (S-017, S-044); the cloud and dashboard side is left |
 | P1-20 | Role-based login | 5 | Not started | Cloud (Amazon Cognito, ADR-0008); follows the cloud gates |
-| P1-21 | Main tank screen | 8 | Not started | Signal conflict **resolved**: heater, pump, valve and motor status all exist. **Owner unknown** |
-| P1-22 | Colour code with text | 3 | Not started | Dashboard. **Owner unknown** |
-| P1-23 | Trends, CSV, PDF | 5 | Not started | Should, may slip. Dashboard |
-| P1-24 | Docs set and Feature Registry | 3 | **Partly done** | README and CHANGELOG kept current; runbook and registry missing |
+| P1-21 | Main tank screen | 8 | Not started | Signal conflict **resolved**: heater, pump, valve and motor status all exist. Owner GamitPrince |
+| P1-22 | Colour code with text | 3 | Not started | Dashboard. Owner GamitPrince |
+| P1-23 | Trends, CSV, PDF | 5 | Not started | Should, may slip. Dashboard. Owner GamitPrince |
+| P1-24 | Docs set and Feature Registry | 3 | **Partly done** | Setup guide and Feature Registry added (S-052); runbook, onboarding and the second-person check of the guide left |
 | P1-25 | Bench FAT and `sys-v0.1.0` | 5 | Not started | Needs hardware and everything above |
-| P1-26 | Figma screen designs | 3 | Not started | **Owner unknown: who builds the dashboard** |
+| P1-26 | Figma screen designs | 3 | Not started | Owner GamitPrince |
 | P1-27 | Valve, pump, motor and heater status | 3 | **Done** (S-033) | **Not on the story card.** Added 20 Nov 2026; channels 3 to 9, normally open, 5 s |
 
-**Totals.** Of 110 points across these 28 rows, 5 are void (P1-07, P1-08) and 10 are undecided (P1-11, P1-13), leaving **95 live points**. **32 are done** (P1-01, 02, 03, 05, 06, 09, 14, 15, 27); P1-00, P1-04, P1-12 and P1-24 (16 points) are part done. What is left waits mostly on people rather than code: the cloud gates (P1-17, 18, 20, and the cloud halves of P1-04, 12 and 19), a dashboard owner (P1-21, 22, 23, 26) and hardware (P1-25).
+**Totals.** Of 110 points across these 28 rows, 15 are void (P1-07, P1-08, P1-11, P1-13), leaving **95 live points**. **32 are done** (P1-01, 02, 03, 05, 06, 09, 14, 15, 27); P1-00, P1-04, P1-12 and P1-24 (16 points) are part done. What is left waits mostly on the cloud gates (P1-17, 18, 20, and the cloud halves of P1-04, 12 and 19; backend and dashboard code can still be built and tested locally) and on bench integration (P1-25).
 
 ## Repo chores
 
@@ -69,7 +69,7 @@ Not on the story card. Repo infrastructure identified while working through Phas
 | CHORE-02 | Rename `gitattributes` to `.gitattributes` | 2 | **Done** (S-025) | A pure rename: the blob hash did not change and all 131 tracked blobs were already LF, so `--renormalize` produced nothing. `git check-attr text eol -- firmware/ci.sh` now reports `set` and `lf`, and the working tree went from 116 CRLF files to 0. An older checkout keeps CRLF until re-checked-out |
 | CHORE-03 | `pr-policy` reads labels from the event payload | 1 | **Specced** (S-024), not started | Spec: [`CHORE-03-pr-policy-label-source.md`](CHORE-03-pr-policy-label-source.md). Observed on PR #46: the `opened` event fires before `gh pr create` attaches the labels, so the first run demands a `safety` label that is present, and a re-run replays the same payload and fails again. Edits a CODEOWNERS policy file, so the tech lead decides first |
 
-Identified but not yet specced, listed under "Backlog-level problems" below: deciding the fate of `gateway/` (the merged ADR status lines were corrected in S-051).
+Decided 26 Nov 2026 and queued as their own stories: removing `gateway/` (S-055), moving the link library to `shared/link-protocol/` (S-056), blocking cppcheck and caching the Zephyr tree (S-057).
 
 ## Hardware inventory, confirmed by the EE on 20 Nov 2026
 
@@ -83,7 +83,7 @@ Controller is the **NXP FRDM-MCXN947** as ADR-0002 says; "nucleo" in an earlier 
 
 - **Decided on delegation:** product temperature design range **0 to 200 °C**, accuracy **±2.0 °C** end-to-end. PT100 class still unconfirmed, so ±2.0 °C is the figure to test against; it tightens to ±1.0 °C if the sensors are Class A, which is worth procuring for margin.
 
-**Two stories are void** (P1-07, P1-08), returning 5 points, and **one was added** (P1-27, 3 points, not on the story card). Phase 1 is now **26 stories, 105 points** against the card's original 27 and 107 (the totals under the status table above count every row, including the void and undecided ones).
+**Four stories are void** (P1-07, P1-08, and P1-11 and P1-13 since 26 Nov 2026), returning 15 points, and **one was added** (P1-27, 3 points, not on the story card). Phase 1 is now **24 stories, 95 points** against the card's original 27 and 107 (the totals under the status table above count every row, including the void and undecided ones).
 
 ## Tracked document corrections needed
 
@@ -91,10 +91,10 @@ None open. `AGENTS.md` section 5 was corrected to match the EE's inventory in S-
 
 ## Backlog-level problems to settle before Sprint 2
 
-1. **Epic E3 (P1-11 to P1-16, 23 points) was written for a separate gateway that ADR-0004 removed.** Six of 27 stories need rewriting or dropping, not just re-pointing. The `gateway/` folder is obsolete too.
+1. **Epic E3 (P1-11 to P1-16, 23 points) was written for a separate gateway that ADR-0004 removed.** Settled 26 Nov 2026: P1-11 and P1-13 are void, and `gateway/` is removed (S-055).
 2. **The story card predates ADR-0004 to ADR-0009.** It still says "all three developers" review `interfaces/` (superseded by S-010), register map (superseded by the YAML signal list), Modbus, OPC UA and VPN.
 3. **Stories the ADRs now require that the card does not contain:** ESP32 communications firmware (ADR-0006; started under P1-12 as S-047, the Wi-Fi, TLS, MQTT and 4G code still to come), device certificate and CA provisioning plus the QR claim flow (ADR-0005), Terraform or OpenTofu blueprints and the test and live environments (ADR-0009), the early cloud test that gates ADR-0007. The 107-point estimate is therefore low.
-4. **Known repo chores not on the card:** decide the fate of `gateway/`. Correcting the seven merged ADR status lines is done (S-051). Renaming `gitattributes` to `.gitattributes` is done (CHORE-02, S-025), and `pr-policy` reading labels from the event payload is specced as CHORE-03 (S-024).
+4. **Known repo chores not on the card:** remove `gateway/` (decided 26 Nov 2026, S-055). Correcting the seven merged ADR status lines is done (S-051). Renaming `gitattributes` to `.gitattributes` is done (CHORE-02, S-025), and `pr-policy` reading labels from the event payload is specced as CHORE-03 (S-024).
 5. The sprint plan's point totals no longer hold once 1 to 3 are settled.
 
 The story card is a Claude Doc owned by the project manager, so I have not changed it. These are recommendations for it.

@@ -27,7 +27,7 @@ Phase 1. Design only. The designs must not show controls that command plant equi
 - **The dashboard developer and an operator representative have reviewed them** `[Confirm reviewers]`.
 
 ## Blockers
-1. **No dashboard developer.** ADR-0008's context names ArkinGamit and SHINE-18, who left on 20 Nov 2026. `AGENTS.md` lists "who builds the dashboard" as `[Confirm]`. One of the two required reviewers does not currently exist.
+1. **No dashboard developer.** ADR-0008's context names ArkinGamit and SHINE-18, who left on 20 Nov 2026. Since 26 Nov 2026 GamitPrince builds the dashboard; one approval from a collaborator other than the author reviews the designs.
 2. **No operator representative identified.** This needs the client, and it is the kind of review that cannot be done internally — an operator who works the plant with gloves on is the whole point.
 3. **P1-21's signal conflict** feeds back here: the designs should not show heater, pump or valve status if Phase 1 has no such signals. Settle that before drawing tiles for them.
 
@@ -38,6 +38,6 @@ Should precede P1-21 and P1-22. Depends on the P1-03 signal list for what can ac
 Building the screens (P1-21 to P1-23). A design system or component library unless asked. Phase 2 control screens.
 
 ## Open questions
-- `[Confirm]` **Who builds the dashboard, and who reviews these designs?**
+- **Resolved 26 Nov 2026:** GamitPrince builds the dashboard and designs; one non-author collaborator reviews them.
 - `[Confirm]` Can the client provide an operator to review, and when?
 - `[Confirm]` Is Figma still the tool, given the team shrank?

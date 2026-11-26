@@ -2,7 +2,7 @@
 
 - Story ID: `[Confirm]` — not yet issued.
 - Epic: E3 Gateway and telemetry. Points: 5. Priority: Must. Component: gateway (card). Review flag: none.
-- Status: **Largely void. Do not start. Needs a backlog decision first.**
+- Status: **VOID for Phase 1** (tech lead, 26 Nov 2026). Modbus RTU and TCP are excluded and no replacement work is authorised; a future need is a new scope decision and story. The 4-20 mA part is done in P1-04. The analysis below is kept as the record of why.
 
 ## MAJOR CONFLICT — this story was written for an architecture that no longer exists
 The story card (26 Oct) assumed a separate gateway polling field devices over Modbus. Three merged ADRs removed that:

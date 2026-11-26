@@ -2,6 +2,7 @@
 
 - Story ID: S-034 (issue #72).
 - Epic: E2 Field sensing. Points: 5. Priority: Must. Component: firmware. Review flag: REG (adds signals).
+- **Revised 26 Nov 2026 (S-053):** density-based mass is removed from Phase 1. The cloud part computes level % and volume only; the "mass" and "density corrected for temperature" criteria below no longer apply. The firmware part is done (S-034).
 
 ## Goal
 Read the radar level transmitter and make the level available as an engineering value with a quality flag.
