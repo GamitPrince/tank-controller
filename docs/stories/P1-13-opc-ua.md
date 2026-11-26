@@ -2,7 +2,7 @@
 
 - Story ID: `[Confirm]` — not yet issued.
 - Epic: E3. Points: 5. Priority: Must in the RSD. Component: gateway (card). Review flag: none.
-- Status: **Blocked on a decision. Do not start.**
+- Status: **VOID** (tech lead, 26 Nov 2026), not deferred to Phase 2. No Siemens or Astec requirement for OPC UA was found, and no server or security work is planned. A future need is a new scope decision and story. The analysis below is kept as the record of why.
 
 ## CONFLICT — no ADR covers OPC UA
 RSD FR-COM-01 lists OPC UA as a Must, and the story card carries its own `[Confirm that OPC UA is needed in Phase 1]`. But **none of ADR-0004 to ADR-0009 mentions OPC UA at all.** ADR-0004 settled the communications architecture as framed UART, CBOR, MQTT over TLS to the cloud, and nothing else. The component it was assigned to, `gateway/`, no longer exists under ADR-0004 decision 1.

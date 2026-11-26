@@ -49,4 +49,4 @@ Trends, CSV and PDF (P1-23). Any AI recommendation element (P1-22 forbids it in 
 - `[Confirm]` What does "dispatch readiness" show?
 - `[Confirm]` How are the paired PT100s at each level presented? Two values per level, or one per level? Averaging them would be a comparison, and comparison is Phase 2 — so showing both is the safe reading.
 - `[Confirm]` Should the screen state that over-temperature and e-stop are not monitored, so an operator does not assume silence means healthy?
-- `[Confirm]` **Who builds the dashboard?** ADR-0008's context still names ArkinGamit and SHINE-18, who have left. This 8-point story has no owner.
+- **Owner: GamitPrince** (decided 26 Nov 2026). ADR-0008's context still names ArkinGamit and SHINE-18, who have left; S-054 corrects it.

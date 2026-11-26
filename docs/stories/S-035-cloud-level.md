@@ -1,5 +1,7 @@
 # S-035: Cloud level %, volume and mass calculation
 
+> **Revised 26 Nov 2026 (S-053):** density-based mass is removed from Phase 1 and S-037 is closed. When this is built, compute level % and volume only; drop section 3 (mass), the density table and the mass tests. The sections are left as written until that story rewrites them.
+
 - Story ID: S-035 (issue #74).
 - Epic: cloud (not on the original Phase 1 Story Cards; split from P1-04, same as P1-27 was split from the digital channel inventory). Points: 5 (tech lead, 2026-11-23 — matches P1-04's original estimate before the split). Priority: Must. Component: backend. Review flag: one non-author collaborator (not a safety path; no EE approval needed).
 - **This story is the cloud half of P1-04.** P1-04 (S-034, PR #73, merged) now reads and sends the radar (signal 1001) and pressure (signal 1002) loop currents in mA, with a quality flag, and does nothing else. Everything below was carved out of P1-04's acceptance criteria by the tech lead's resolution of 2026-11-23, recorded in `docs/stories/P1-04-radar-level.md`.
