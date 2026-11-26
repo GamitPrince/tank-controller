@@ -17,11 +17,10 @@
 
 #define LOG_PARTITION DT_CHOSEN(tank_log_partition)
 
-#if DT_HAS_CHOSEN(tank_esp32_uart)
-#define ESP32_UART DEVICE_DT_GET(DT_CHOSEN(tank_esp32_uart))
-#else
-#define ESP32_UART NULL
-#endif
+/* The ESP32 UART, or NULL on a board whose devicetree names none. */
+#define ESP32_UART                                                                                 \
+	COND_CODE_1(DT_HAS_CHOSEN(tank_esp32_uart), (DEVICE_DT_GET(DT_CHOSEN(tank_esp32_uart))),   \
+		    (NULL))
 
 /* One consolidated record per second (decided 26 Nov 2026). */
 #define SCAN_PERIOD_MS 1000U
