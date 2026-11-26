@@ -9,6 +9,7 @@
 
 #include "alarm_input.h"
 #include "equipment_status.h"
+#include "link_sender.h"
 #include "level_switch.h"
 #include "loop_level.h"
 #include "product_temperature.h"
@@ -108,13 +109,37 @@ static int start_scanning(struct tank_app *app, const struct tank_app_config *cf
 	return tank_scan_service_start(&app->scan, &in, &scan_cfg);
 }
 
+static int start_forwarding(struct tank_app *app, const struct tank_app_config *cfg)
+{
+	const struct tank_link_sender_config link_cfg = tank_link_sender_default_config();
+	const struct tank_uplink_io io = {.write_fn = tank_esp32_uart_write,
+					  .read_fn = tank_esp32_uart_read,
+					  .now_fn = tank_esp32_uart_now,
+					  .ctx = &app->uart};
+	int err = tank_esp32_uart_init(&app->uart, cfg->esp32_uart);
+
+	if (err == 0) {
+		err = tank_uplink_init(&app->up, cfg->device_id, &link_cfg, &io);
+	}
+	if (err == 0) {
+		app->fw = (struct tank_log_forwarder){.log = &app->log,
+						      .send_fn = tank_uplink_send,
+						      .ctx = &app->up,
+						      .batch = app->batch,
+						      .batch_cap = TANK_APP_UPLINK_BATCH};
+		err = tank_uplink_service_start(&app->forwarding, &app->fw, &cfg->uplink);
+	}
+	return err;
+}
+
 int tank_app_start(struct tank_app *app, const struct tank_app_config *cfg)
 {
 	const struct tank_boot_time_config bt_cfg = {
 	    .agreement_limit_ms = (cfg == NULL) ? 0U : cfg->clock_agreement_limit_ms};
 	int err;
 
-	if ((app == NULL) || (cfg == NULL) || (cfg->boot_id == NULL)) {
+	if ((app == NULL) || (cfg == NULL) || (cfg->boot_id == NULL) ||
+	    ((cfg->esp32_uart != NULL) && (cfg->device_id == NULL))) {
 		return -EINVAL;
 	}
 	if (app->scan.tid != NULL) {
@@ -132,12 +157,21 @@ int tank_app_start(struct tank_app *app, const struct tank_app_config *cfg)
 	if (err == 0) {
 		err = start_scanning(app, cfg);
 	}
+	if ((err == 0) && (cfg->esp32_uart != NULL)) {
+		err = start_forwarding(app, cfg);
+	}
 	return err;
 }
 
 int tank_app_stop(struct tank_app *app)
 {
-	return (app == NULL) ? -EINVAL : tank_scan_service_stop(&app->scan);
+	if (app == NULL) {
+		return -EINVAL;
+	}
+	if (app->forwarding.tid != NULL) {
+		(void)tank_uplink_service_stop(&app->forwarding);
+	}
+	return tank_scan_service_stop(&app->scan);
 }
 
 const struct tank_scan_sources *tank_app_sources(const struct tank_app *app)
