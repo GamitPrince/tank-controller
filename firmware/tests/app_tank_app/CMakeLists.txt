@@ -19,6 +19,8 @@ target_sources(app PRIVATE
   src/main.c
   src/uplink.c
   ${FLASH_LOG_TEST_DIR}/src/scan_gen.c
+  # The emulated ESP32's side of the link; the application itself only sends.
+  ${FIRMWARE_DIR}/../shared/link-protocol/link_receiver.c
 )
 target_include_directories(app PRIVATE ${FLASH_LOG_TEST_DIR}/src)
 tank_add_app_sources(app ${CMAKE_CURRENT_BINARY_DIR}/generated)
