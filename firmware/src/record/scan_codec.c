@@ -49,9 +49,16 @@ static void put_uvar(struct writer *w, uint64_t v)
 	put_byte(w, (uint8_t)v);
 }
 
+/*
+ * Zigzag: 0, -1, 1, -2 ... become 0, 1, 2, 3. Worked on the unsigned bits,
+ * because right-shifting a negative int64_t is implementation-defined (found
+ * by cppcheck in S-057); the all-ones mask is the sign bit spread.
+ */
 static void put_svar(struct writer *w, int64_t v)
 {
-	put_uvar(w, ((uint64_t)v << 1) ^ (uint64_t)(v >> 63));
+	const uint64_t u = (uint64_t)v;
+
+	put_uvar(w, (u << 1) ^ (UINT64_C(0) - (u >> 63)));
 }
 
 static uint8_t get_byte(struct reader *r)

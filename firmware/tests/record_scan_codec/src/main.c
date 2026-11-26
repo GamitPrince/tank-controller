@@ -115,6 +115,37 @@ ZTEST(scan_codec, test_delta_round_trip_with_every_kind_of_change)
 	round_trip_delta(&prev, &s, &len);
 }
 
+/* The largest jumps a reading can make, both ways, which zigzag must survive. */
+ZTEST(scan_codec, test_extreme_values_and_deltas_round_trip)
+{
+	struct tank_scan prev;
+	struct tank_scan s;
+	struct tank_scan out;
+	size_t len;
+
+	make_scan(&prev, 1U);
+	make_scan(&s, 2U);
+	prev.r[0].val = INT32_MIN;
+	s.r[0].val = INT32_MAX;
+	prev.r[1].val = INT32_MAX;
+	s.r[1].val = INT32_MIN;
+	prev.r[2].val = -1;
+	s.r[2].val = 0;
+	round_trip_delta(&prev, &s, &len);
+
+	prev = s;
+	make_scan(&s, 3U);
+	s.r[0].val = INT32_MIN;
+	s.r[1].val = INT32_MAX;
+	s.r[2].val = -1;
+	round_trip_delta(&prev, &s, &len);
+
+	len = tank_scan_encode_full(&prev, buf, sizeof(buf));
+	zassert_true(len > 0U);
+	zassert_ok(tank_scan_decode_full(buf, len, &out));
+	assert_scan_equal(&prev, &out);
+}
+
 ZTEST(scan_codec, test_delta_decodes_in_place)
 {
 	struct tank_scan prev;

@@ -63,7 +63,7 @@ jobs:
       # there are no restore-keys, so a changed pin never reuses an older
       # tree (S-057, ADR-0003 amendment 3). west update still runs after a hit.
       - name: Cache the Zephyr tree
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .west
