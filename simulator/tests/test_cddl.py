@@ -53,6 +53,7 @@ def replacing(**changes) -> dict:
 
 def test_the_real_schema_compiles(schema):
     assert "record" in schema.rule_names
+    assert "batch" in schema.rule_names
     assert schema.source.endswith("records.cddl")
 
 
@@ -120,6 +121,24 @@ def test_a_gap_record_the_schema_forbids_is_rejected(schema, record, expected):
 def test_a_record_mixing_scan_and_gap_keys_matches_neither(schema):
     with pytest.raises(SchemaError, match="matches none"):
         schema.validate({**GOOD_RECORD, "gap": GOOD_GAP_RECORD["gap"]})
+
+
+def test_a_batch_of_one_to_five_messages_passes(schema):
+    for n in range(1, 6):
+        schema.validate([GOOD_RECORD] * n)
+    schema.validate([GOOD_RECORD, GOOD_GAP_RECORD, GOOD_RECORD], "batch")
+
+
+@pytest.mark.parametrize("batch", [[], [GOOD_RECORD] * 6], ids=["empty", "six"])
+def test_an_empty_or_oversized_batch_is_rejected(schema, batch):
+    with pytest.raises(SchemaError):
+        schema.validate(batch, "batch")
+    assert not schema.matches(batch)
+
+
+def test_a_batch_with_a_bad_record_in_it_is_rejected(schema):
+    with pytest.raises(SchemaError):
+        schema.validate([GOOD_RECORD, without("seq")], "batch")
 
 
 def test_a_bool_is_an_allowed_reading_value(schema):

@@ -61,6 +61,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The application forwards its flash log to the ESP32 (S-061): after scanning starts, it brings up the ESP32 UART from the devicetree's `tank,esp32-uart`, the uplink, the log forwarder (batch 16) and the uplink service (idle 1 s, retry 5 s). Scanning never waits for the link. Records carry the device ID, the MCU's factory unique ID read with hwinfo and written as lowercase hex (tech lead, 26 Nov 2026); without one the device still logs, just without forwarding.
 
+- The record schema gains the batch message (S-062): `batch = [1*5 message]`, one to five complete records, oldest first, which the FRDM packs into one link frame and the ESP32 publishes as one MQTT message on `tank/{device_id}/records`. A single record stays valid on its own, and `v` stays 1.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.

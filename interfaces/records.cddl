@@ -7,8 +7,8 @@
 ;   with a boot id and a "time not yet known" flag.
 ; ADR-0008: every value carries a quality flag and an age.
 ;
-; Version 1 gained the gap record in S-040 before any device or cloud consumed
-; the schema, so `v` stays 1.
+; Version 1 gained the gap record in S-040 and the batch in S-062 before any
+; device or cloud consumed the schema, so `v` stays 1.
 ;
 ; The device is send-only (ADR-0004 decision 10). There is no command record
 ; and no inbound message type in Phase 1; adding one would be a phase change.
@@ -21,7 +21,16 @@
 ; A device sends scan records, and a gap record when its outage buffer had to
 ; drop scans that were never delivered (S-040). The two are told apart by
 ; their keys: a scan record has `r`, a gap record has `gap`.
-start = record / gap-record
+;
+; On the wire a device sends a batch (S-062; tech lead, 26 Nov 2026): one to
+; five records, oldest first, in one FRDM-to-ESP32 link frame and one MQTT
+; message on tank/{device_id}/records, normally five one-second records every
+; 5 s. Each record in a batch is complete on its own, `v` and `dev` included,
+; so a consumer can split a batch and handle the records one at a time; a
+; single message is therefore valid by itself too.
+start = batch / message
+batch = [1*5 message]
+message = record / gap-record
 
 ; ---------------------------------------------------------------------------
 ; A scan record: one sample of a set of signals, from one device, at one time.
