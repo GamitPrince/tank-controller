@@ -14,9 +14,9 @@ if(NOT EXISTS "${UNITY_DIR}/src/unity.c")
 endif()
 
 set(ESP32_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
-# The shared link library (ADR-0004 decision 5) stays in the FRDM tree for
-# now; both boards compile the same files.
-set(LINK_DIR ${ESP32_DIR}/../firmware/src/communications)
+# The shared link library (ADR-0004 decision 5) lives in shared/link-protocol/
+# (S-056); both boards compile the same files.
+set(LINK_DIR ${ESP32_DIR}/../shared/link-protocol)
 
 set(STRICT_FLAGS -Wall -Wextra -Wpedantic -Werror)
 set(COVERAGE_FLAGS --coverage -O0)

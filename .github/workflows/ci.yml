@@ -40,12 +40,11 @@ jobs:
           # A change to the contract, scripts or CI re-tests every component.
           shared="$(has '^(interfaces/|scripts/|\.github/)')"
           out() { echo "$1=$2" >> "$GITHUB_OUTPUT"; }
-          for c in firmware dashboard; do
-            if [ "$(has "^$c/")" = true ] || [ "$shared" = true ]; then out "$c" true; else out "$c" false; fi
-          done
+          if [ "$(has '^(firmware/|shared/)')" = true ] || [ "$shared" = true ]; then out firmware true; else out firmware false; fi
+          if [ "$(has '^dashboard/')" = true ] || [ "$shared" = true ]; then out dashboard true; else out dashboard false; fi
           if [ "$(has '^(simulator/|firmware/)')" = true ] || [ "$shared" = true ]; then out simulator true; else out simulator false; fi
-          # The ESP32 build compiles the shared link library from the FRDM tree (S-047).
-          if [ "$(has '^(esp32/|firmware/src/communications/link_|firmware/\.clang-format)')" = true ] || [ "$shared" = true ]; then out esp32 true; else out esp32 false; fi
+          # Both boards build the link library in shared/link-protocol/ (S-056).
+          if [ "$(has '^(esp32/|shared/link-protocol/|firmware/\.clang-format)')" = true ] || [ "$shared" = true ]; then out esp32 true; else out esp32 false; fi
           if [ "$(has '^(docs/|[^/]*\.md$)')" = true ] || [ "$shared" = true ]; then out docs true; else out docs false; fi
 
   firmware:

@@ -28,8 +28,8 @@ Started 26 Nov 2026 (S-052) by back-filling the features merged so far. Each row
 | --- | --- | --- | --- | --- |
 | SNTP plus boot-relative time, boot id, "time not yet known" | P1-15 | S-038, PR #80 | `src/communications/clock_sync*`, `src/communications/sntp_client*`, `src/record/boot_time*` | `tests/communications_clock_sync`, `tests/record_boot_time` |
 | Delta-encoded append-only flash log, forwarded with original timestamps | P1-14 | S-039, PR #82 | `src/record/flash_log*`, `src/record/scan_codec*`, `src/communications/log_forwarder*` | `tests/record_flash_log`, `tests/record_scan_codec` |
-| UART link framing (COBS, version, type, seq, CRC) | P1-12 | S-042, PR #88 | `src/communications/link_frame*` | `tests/communications_link_frame` |
-| Delivery confirmation (stop-and-wait sender, duplicate-safe receiver) | P1-12 | S-043, PR #90 | `src/communications/link_sender*`, `src/communications/link_receiver*` | `tests/communications_link_delivery` |
+| UART link framing (COBS, version, type, seq, CRC) | P1-12 | S-042, PR #88 | `shared/link-protocol/link_frame*` (moved from `src/communications/` in S-056) | `tests/communications_link_frame`, `esp32/tests/` |
+| Delivery confirmation (stop-and-wait sender, duplicate-safe receiver) | P1-12 | S-043, PR #90 | `shared/link-protocol/link_sender*`, `shared/link-protocol/link_receiver*` (moved in S-056) | `tests/communications_link_delivery`, `esp32/tests/` |
 | CBOR scan and gap records | P1-12 | S-044, PR #93 | `src/record/record_cbor*` | `tests/record_cbor` |
 | Flash log forwarded over the link (partial acks) | P1-12 | S-045, PR #94 | `src/communications/uplink*` | `tests/communications_uplink`, `tests/record_flash_log` |
 | Zephyr UART driver for the ESP32 link | P1-12 | S-048, PR #100 | `src/hardware/esp32_uart*` | `tests/hardware_esp32_uart` |
