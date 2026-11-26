@@ -51,6 +51,7 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 - The tech lead's decision review of 26 Nov 2026 recorded in `AGENTS.md` and the story pages (S-053): P1-11 (Modbus) and P1-13 (OPC UA) void; density-based mass removed from Phase 1 and S-037 closed; GamitPrince owns the dashboard and prinz-assists QA; no ruleset bypass list; the backend, Terraform, migration, registry, MQTT topic and batching choices; one consolidated record per second; the status of ADR-0007's three cloud gates.
 - `gateway/` removed with its CI job, the `gateway` title scope in `pr-policy`, the template options and the docs that still offered it (S-055; ADR-0004 decision 1, tech lead decision of 26 Nov 2026).
 - The FRDM-to-ESP32 link library (`link_frame`, `link_sender`, `link_receiver`) moved unchanged from `firmware/src/communications/` to `shared/link-protocol/`, which both boards build (S-056, ADR-0003 amendment 1). The firmware job still formats, checks, tests and measures it; CI now runs the `firmware` and `esp32` jobs when it changes.
+- cppcheck now runs in CI and blocks the firmware job on errors, warnings and portability findings; style and performance findings are shown but do not block. The firmware job caches the west-fetched Zephyr tree, keyed on `firmware/west.yml` and `firmware/requirements-dev.txt` with no fallback key (S-057, ADR-0003 amendments 2 and 3).
 
 ### Notes
 
