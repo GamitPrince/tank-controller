@@ -34,6 +34,7 @@ Started 26 Nov 2026 (S-052) by back-filling the features merged so far. Each row
 | Flash log forwarded over the link (partial acks) | P1-12 | S-045, PR #94 | `src/communications/uplink*` | `tests/communications_uplink`, `tests/record_flash_log` |
 | Zephyr UART driver for the ESP32 link | P1-12 | S-048, PR #100 | `src/hardware/esp32_uart*` | `tests/hardware_esp32_uart` |
 | Uplink service thread; flash log made thread-safe | P1-12 | S-049, PR #102 | `src/communications/uplink_service*`, `src/record/flash_log*` | `tests/communications_uplink_service` |
+| One-second scan record built from the 23 inputs (scaled value, quality, age, boot-time header) | P1-12 | S-058 | `src/record/scan_builder*` | `tests/record_scan_builder` |
 
 ## ESP32 firmware
 

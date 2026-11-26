@@ -53,6 +53,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 - The FRDM-to-ESP32 link library (`link_frame`, `link_sender`, `link_receiver`) moved unchanged from `firmware/src/communications/` to `shared/link-protocol/`, which both boards build (S-056, ADR-0003 amendment 1). The firmware job still formats, checks, tests and measures it; CI now runs the `firmware` and `esp32` jobs when it changes.
 - cppcheck now runs in CI and blocks the firmware job on errors, warnings and portability findings; style and performance findings are shown but do not block. The firmware job caches the west-fetched Zephyr tree, keyed on `firmware/west.yml` and `firmware/requirements-dev.txt` with no fallback key (S-057, ADR-0003 amendments 2 and 3).
 
+- The scan builder (S-058): one call turns the current state of the 23 Phase 1 inputs into the record the flash log stores, with loop currents in microamps, temperatures in centi-degrees, contacts as 1 or 0, each reading's quality and age, and the boot-time header. Faults and never-read inputs carry no value, and a contact whose state has not yet survived its debounce is a fault. Read-only: nothing in `firmware/src/safety/` changes.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
