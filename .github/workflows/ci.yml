@@ -23,7 +23,6 @@ jobs:
     timeout-minutes: 5
     outputs:
       firmware: ${{ steps.diff.outputs.firmware }}
-      gateway: ${{ steps.diff.outputs.gateway }}
       dashboard: ${{ steps.diff.outputs.dashboard }}
       simulator: ${{ steps.diff.outputs.simulator }}
       esp32: ${{ steps.diff.outputs.esp32 }}
@@ -41,7 +40,7 @@ jobs:
           # A change to the contract, scripts or CI re-tests every component.
           shared="$(has '^(interfaces/|scripts/|\.github/)')"
           out() { echo "$1=$2" >> "$GITHUB_OUTPUT"; }
-          for c in firmware gateway dashboard; do
+          for c in firmware dashboard; do
             if [ "$(has "^$c/")" = true ] || [ "$shared" = true ]; then out "$c" true; else out "$c" false; fi
           done
           if [ "$(has '^(simulator/|firmware/)')" = true ] || [ "$shared" = true ]; then out simulator true; else out simulator false; fi
@@ -58,16 +57,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: bash scripts/ci/run-component.sh firmware
-
-  gateway:
-    name: gateway
-    needs: changes
-    if: needs.changes.outputs.gateway == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-      - run: bash scripts/ci/run-component.sh gateway
 
   dashboard:
     name: dashboard
@@ -114,7 +103,7 @@ jobs:
   ci-gate:
     name: ci-gate
     if: always()
-    needs: [changes, firmware, gateway, dashboard, simulator, esp32, docs]
+    needs: [changes, firmware, dashboard, simulator, esp32, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:

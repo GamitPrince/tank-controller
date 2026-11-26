@@ -35,9 +35,9 @@ jobs:
             const names = files.flatMap(f => f.previous_filename ? [f.filename, f.previous_filename] : [f.filename]);
 
             // 1. Title: type(scope): description
-            const titleRe = /^(feat|fix|docs|style|refactor|test|chore|perf)\((firmware|gateway|dashboard|simulator|hardware|interfaces|docs)\)!?: \S.*$/;
+            const titleRe = /^(feat|fix|docs|style|refactor|test|chore|perf)\((firmware|dashboard|simulator|hardware|interfaces|docs)\)!?: \S.*$/;
             if (!titleRe.test(pr.title)) {
-              errors.push('Title must look like "feat(firmware): add level control loop" (types: feat fix docs style refactor test chore perf; scopes: firmware gateway dashboard simulator hardware interfaces docs).');
+              errors.push('Title must look like "feat(firmware): add level control loop" (types: feat fix docs style refactor test chore perf; scopes: firmware dashboard simulator hardware interfaces docs).');
             }
 
             // 2. Branch name and direction

@@ -6,12 +6,12 @@ People used below:
 
 | GitHub username | Roles |
 | --- | --- |
-| `GamitPrince` | Repository owner, project manager, firmware developer, gateway developer |
+| `GamitPrince` | Repository owner, project manager, firmware developer |
 | `ArkinGamit` | Dashboard developer |
 | `SHINE-18` | Dashboard developer |
 | `gamitriyan-del` | Electrical engineer (EE) |
 
-"All three developers" means these three people: GamitPrince, ArkinGamit and SHINE-18. Because GamitPrince writes the firmware and gateway code, his pull requests are reviewed by ArkinGamit or SHINE-18, and theirs by anyone else with write access.
+"All three developers" means these three people: GamitPrince, ArkinGamit and SHINE-18. Because GamitPrince writes the firmware code, his pull requests are reviewed by ArkinGamit or SHINE-18, and theirs by anyone else with write access.
 
 ## 1. Create the repository (PM)
 
@@ -124,7 +124,7 @@ The bypass list is empty, so nobody can merge around the rules by accident. If s
 ## Known limits
 
 - A **personal account has no teams**, so CODEOWNERS lists individual usernames and the "all three developers" rule needs the `interfaces-review` check. A free GitHub Organization would allow teams and shared ownership, at no cost.
-- **GamitPrince is the only firmware and gateway developer**, so every firmware and gateway pull request is reviewed by ArkinGamit or SHINE-18. Pick the reviewer for the code, and for `firmware/src/safety/` the EE reviews as well. This keeps the rule "nobody approves their own PR", but a reviewer from the dashboard side may know less about firmware.
+- **GamitPrince is the only firmware developer**, so every firmware pull request is reviewed by ArkinGamit or SHINE-18. Pick the reviewer for the code, and for `firmware/src/safety/` the EE reviews as well. This keeps the rule "nobody approves their own PR", but a reviewer from the dashboard side may know less about firmware.
 - **Nobody else can approve for the EE.** `gamitriyan-del` is the only owner of `firmware/src/safety/` and `docs/safety/`. If the EE writes a change in those folders, no one else can approve it, so add a second owner first.
 - The branch-name rule applies to pull requests, not to pushing an oddly named branch.
 - A squash merge of a `release/*` branch into `main` leaves `main` and `develop` with different history. The Guide's "merge back to `develop`" step may show conflicts; if it does, resolve them in the merge-back PR.

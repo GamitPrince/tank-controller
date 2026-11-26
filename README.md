@@ -8,7 +8,6 @@ Tank-AI: monitoring and (in later phases) control for hot-liquid storage tanks. 
 | --- | --- |
 | `firmware/` | FRDM-MCXN947 controller firmware (Zephyr 4.5.0, C11). `firmware/src/safety/` needs the EE's approval |
 | `esp32/` | ESP32-S3 communications helper firmware (ESP-IDF, C); logic tested on the host with Unity |
-| `gateway/` | Empty and probably obsolete: ADR-0004 removed the separate gateway, so the controller collects and communicates itself. Do not add code here |
 | `dashboard/` | Web interface |
 | `simulator/` | Tank and heater simulator used by everyone for testing |
 | `hardware/` | Bill of materials and wiring notes. Schematics and hardware review records stay in a private location, never in this public repo |
