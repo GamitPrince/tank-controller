@@ -23,12 +23,18 @@ Phase 1 CI housekeeping. No firmware behaviour changes and no safety path.
 ## Measured before this story
 In PR #116's firmware job the fetch took 1 min 48 s of 4 min 35 s, and the fetched tree is about 6 GB (5.6 GB of it modules, because `import: true` pulls every Zephyr module). A cache entry that large uses most of the repository's 10 GB cache quota, and restoring it may not be much faster than fetching. This PR measures it: the first run saves the entry, a re-run restores it.
 
+## Measured on this PR (26 Nov 2026)
+- **Without the cache:** the fetch took 2 min 26 s.
+- **Saving:** the entry compresses to **1.25 GB** (about an eighth of the 10 GB quota, not 6 GB), and saving it took about 14 s, once per key.
+- **With the cache:** the restore took 28 s and `west update` then took 20 s, so **about 48 s instead of 1 min 48 s to 2 min 26 s**. That saves 1 to 1.5 minutes on every firmware run after the first.
+- **cppcheck:** both passes together take under 1 s.
+
 ## Findings fixed in this PR
 - `firmware/src/record/scan_codec.c` `put_svar`: zigzag encoding right-shifted a negative `int64_t` (`shiftTooManyBitsSigned`), which C leaves implementation-defined. It now works on the unsigned bits; the encoded bytes are the same. A new test, `test_extreme_values_and_deltas_round_trip`, round-trips readings jumping between `INT32_MIN` and `INT32_MAX` in both directions.
 - `actions/cache` is `@v6` (the latest release); `@v4` runs on the deprecated Node 20.
 
 ## Open questions [Confirm]
-1. **Keep the cache?** Only if the measured restore is clearly faster than the 1 min 48 s fetch.
+1. **Keep the cache?** Recommended: yes. The measurement above shows it is faster, at 1.25 GB of quota.
 2. **A develop warm-up.** CI runs only on pull requests, and a pull request's cache entry is visible only to that pull request. Every new PR would therefore start cold unless a run on `develop` saves the entry. That needs a small extra workflow (on merge to `develop` and on a schedule), which is not in this PR.
 3. **Fetch less instead.** A `name-allowlist` in `west.yml` (Zephyr plus the modules the FRDM-MCXN947 build needs) would shrink both the fetch and any cache. That is a manifest change and its own story.
 
