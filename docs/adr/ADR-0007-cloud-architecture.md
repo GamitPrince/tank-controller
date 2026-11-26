@@ -1,6 +1,6 @@
 # ADR-0007: Cloud architecture: hosting, provider, databases, retention, backend and updates
 
-- Status: **Accepted.** Confirmed by the tech lead on 18 Nov 2026 as the direction, including the three proposed rules; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #15. The three gates still hold: no account is opened and nothing is bought until the customers' answers (see Questions for the customers), the early cloud test (see To verify) and a Tiger Cloud quote for 100 and 1,000 devices are in. If a gate fails, we use the fallback in decision 4 or reopen the decision.
+- Status: **Accepted.** Confirmed by the tech lead on 18 Nov 2026 as the direction, including the three proposed rules; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #15. The three gates still hold: no account is opened and nothing is bought until the customers' answers (see Questions for the customers), the early cloud test (see To verify) and a Tiger Cloud quote for 100 and 1,000 devices are in. If a gate fails, we use the fallback in decision 4 or reopen the decision. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 17 Nov 2026
 - Story: P1-00 (issue S-002); shapes P1-12, P1-13, P1-14, P1-16 and the cloud-side stories (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
@@ -73,3 +73,12 @@ Proposed rules (not asked in the decision dialog; to be confirmed by the tech le
 - RSD v0.2: FR-COM-01, FR-COM-03, FR-COM-04, FR-SAF-04, NFR-01, NFR-04, NFR-09, NFR-10
 - ADR-0004, ADR-0005, ADR-0006
 - AWS IoT Core documentation on own client certificates; Amazon Timestream for LiveAnalytics availability change; Azure Event Grid MQTT broker overview; Amazon RDS for PostgreSQL extension versions
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Hosting (decision 1 and "Not decided here"):** long-term target is hybrid hosting. Now: Tank-AI-managed SaaS only, in Tank-AI's AWS account, with strict tenant isolation. Final phase: dedicated deployments in a customer's own AWS account, not current scope. Infrastructure code must support reuse and separate test and production environments. **Gate 1 is not passed:** written Siemens/Astec confirmation of managed hosting, region and data residency, security requirements, integration expectations and any dedicated-hosting need is still outstanding. The internal choice is not customer approval.
+2. **Gate 2, the early cloud test:** approved for one test ESP32-S3 + A7672S device, non-production, about 2 to 3 working days: register the device, provision its certificate, connect over MQTT and TLS, publish sample readings, check they arrive, and test disconnect and reconnect. **Free allowances and credits only; no other spending is authorised.** Billing alerts are set and eligibility and limits checked first. Not yet run.
+3. **Gate 3, Tiger Cloud:** development and testing use free services or the trial and its credits, if the existing account is eligible. The production target is the Scale plan, subject to sizing of device count, ingestion rate, retention, query load, storage and total cost. No paid subscription or upgrade until that sizing and cost are reviewed. Account eligibility, remaining credits and any outstanding charges are not yet checked. Development data is backed up before a trial ends.
+4. **Decisions 6 and 9, mass removed:** the backend calculates level % and volume with the calculation version stored; no density-based mass in Phase 1 (ADR-0004 amendment 1).

@@ -1,6 +1,6 @@
 # ADR-0006: ESP32 communications firmware: framework, language, tests, lock and modem
 
-- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #14.
+- Status: **Accepted.** Confirmed by the tech lead on 17 Nov 2026; approved by prinz-assists, a collaborator other than the author, and merged on 20 Nov 2026 in PR #14. **Amended on 26 Nov 2026** by the tech lead (S-054); see Amendments at the end.
 - Date: 17 Nov 2026
 - Story: P1-00 (issue S-002); shapes a new ESP32 firmware story (to be created)
 - Deciders: GamitPrince (project manager / tech lead)
@@ -47,3 +47,11 @@ ADR-0004 makes the ESP32-S3 + A7672S board (K-tron listing, specifications not y
 
 - RSD v0.2: FR-COM-01, FR-COM-03, FR-COM-04, NFR-05, NFR-10
 - ADR-0002, ADR-0003, ADR-0004, ADR-0005
+
+## Amendments (tech lead, 26 Nov 2026, S-054)
+
+The decision record is `docs/stories/S-053-record-26-nov-decisions.md`. Where an amendment and the text above disagree, the amendment wins.
+
+1. **Shared link library location** (Consequences): `shared/link-protocol/`, built by both firmwares (ADR-0003 amendment 1, S-056).
+2. **Publishing:** the ESP32 publishes to `tank/{device_id}/records`, five one-second records every 5 s, backlog oldest first (ADR-0004 amendment 4).
+3. **First cloud test:** one test ESP32-S3 + A7672S device is approved for the AWS IoT Core proof of concept (ADR-0007 amendment 2).
