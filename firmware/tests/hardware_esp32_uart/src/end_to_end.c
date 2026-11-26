@@ -39,6 +39,8 @@ static struct tank_log_item batch[BATCH_CAP];
 static struct {
 	struct tank_link_decoder dec;
 	struct tank_link_receiver rx;
+	/* Frames passed up, and the records inside them (S-063). */
+	uint32_t frames;
 	uint32_t records;
 	uint32_t drop_delivered;
 } esp;
@@ -64,7 +66,9 @@ static void on_frame(const struct tank_link_msg *msg)
 	int action = tank_link_receiver_on_msg(&esp.rx, msg);
 
 	if (action == TANK_LINK_RECV_DELIVER) {
-		esp.records++;
+		esp.frames++;
+		/* A batch's CBOR array header holds its record count. */
+		esp.records += msg->payload[0] & 0x1FU;
 	}
 	if (action != TANK_LINK_RECV_NONE) {
 		reply(msg->seq);
@@ -128,9 +132,10 @@ ZTEST(esp32_uart_end_to_end, test_batch_is_confirmed_over_the_uart)
 	zassert_equal(tank_log_forwarder_poll(&fw), BATCH_SCANS);
 	zassert_equal(tank_log_forwarder_poll(&fw), 0, "the batch was acked");
 	zassert_equal(esp.records, BATCH_SCANS);
-	zassert_equal(tank_uplink_stats(&up)->confirmed, BATCH_SCANS);
+	zassert_equal(esp.frames, 1U, "five records travel in one frame");
+	zassert_equal(tank_uplink_stats(&up)->confirmed, 1U);
 	zassert_equal(tank_link_sender_stats(&up.sender)->retransmitted, 0U);
-	zassert_equal(tank_esp32_uart_stats(&uart)->frames, BATCH_SCANS);
+	zassert_equal(tank_esp32_uart_stats(&uart)->frames, 1U, "one DELIVERED came back");
 }
 
 ZTEST(esp32_uart_end_to_end, test_lost_delivered_is_recovered_once)
@@ -138,6 +143,7 @@ ZTEST(esp32_uart_end_to_end, test_lost_delivered_is_recovered_once)
 	esp.drop_delivered = 1U;
 	zassert_equal(tank_log_forwarder_poll(&fw), BATCH_SCANS);
 	zassert_equal(esp.records, BATCH_SCANS, "each record passed up once");
+	zassert_equal(esp.frames, 1U);
 	zassert_equal(tank_link_receiver_stats(&esp.rx)->duplicates, 1U);
 	zassert_equal(tank_link_sender_stats(&up.sender)->retransmitted, 1U);
 }

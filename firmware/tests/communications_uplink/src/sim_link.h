@@ -27,13 +27,14 @@ struct sim_link {
 	uint32_t drop_records;
 	uint32_t drop_delivered;
 	bool dead;
-	/* When non-zero, the link goes dead once this many records got through. */
+	/* When non-zero, the link goes dead once this many frames got through. */
 	uint32_t dead_after;
 	int read_error;
 	/* When non-zero, a read that would wait returns a frame this much later. */
 	uint32_t noise_every_ms;
-	/* What the ESP32 passed up, in order. */
+	/* What the ESP32 passed up, in order: frames, and the records inside them. */
 	uint32_t delivered;
+	uint32_t records;
 	uint16_t log_crc[SIM_LOG_MAX];
 	size_t log_len[SIM_LOG_MAX];
 	struct tank_link_receiver rx;

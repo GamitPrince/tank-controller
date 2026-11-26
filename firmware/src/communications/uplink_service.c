@@ -18,10 +18,10 @@ static atomic_t service_running = ATOMIC_INIT(0);
 
 uint32_t tank_uplink_service_next_delay(int result, const struct tank_uplink_service_config *cfg)
 {
-	if (result > 0) {
-		return 0U;
+	if (result < 0) {
+		return cfg->retry_ms;
 	}
-	return (result == 0) ? cfg->idle_ms : cfg->retry_ms;
+	return ((result > 0) && ((uint32_t)result >= cfg->full_batch)) ? 0U : cfg->idle_ms;
 }
 
 static void count(struct tank_uplink_service *svc, int result)

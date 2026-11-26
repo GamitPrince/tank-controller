@@ -36,8 +36,8 @@
 #define TANK_APP_MAX_LEVELS 4U
 #define TANK_APP_MAX_TEMPERATURES 8U
 #define TANK_APP_MAX_CONTACTS 16U
-/* Scans the forwarder reads per send (S-039: 16 to 32). */
-#define TANK_APP_UPLINK_BATCH 16U
+/* Scans the forwarder reads per poll: one frame's worth (S-063). */
+#define TANK_APP_UPLINK_BATCH TANK_UPLINK_BATCH_MAX
 
 struct tank_app_config {
 	/* TANK_BOOT_ID_LEN random bytes, fresh for every boot (S-038). */

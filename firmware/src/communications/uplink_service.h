@@ -2,9 +2,10 @@
  * Run the log forwarder in its own thread (S-049, P1-12).
  *
  * One thread polls tank_log_forwarder_poll() (S-039) for as long as the
- * service runs. When a poll delivered something it polls again at once, so a
- * backlog after an outage drains batch after batch; when caught up it waits
- * idle_ms; when the link acknowledged nothing it waits retry_ms. The thread
+ * service runs. When a poll delivered a full batch it polls again at once, so
+ * a backlog after an outage drains batch after batch; when it delivered less
+ * (S-063) or nothing, the log is caught up and it waits idle_ms, which lets
+ * the next batch fill; when the link acknowledged nothing it waits retry_ms. The thread
  * has its own stack because one send can block for seconds (S-045: the
  * link's ack timeout times its attempts, per record), which must not stall
  * the system work queue.
@@ -30,6 +31,11 @@ struct tank_uplink_service_config {
 	uint32_t idle_ms;
 	/* Wait after a poll that failed. */
 	uint32_t retry_ms;
+	/*
+	 * A poll that delivered at least this many polls again at once; fewer
+	 * means caught up. 0 polls again after any delivery (S-049).
+	 */
+	uint32_t full_batch;
 };
 
 struct tank_uplink_service_stats {
@@ -52,8 +58,9 @@ struct tank_uplink_service {
 };
 
 /*
- * How long to wait after a poll that returned result: 0 after a delivery,
- * idle_ms when caught up, retry_ms after an error.
+ * How long to wait after a poll that returned result: 0 after a full batch
+ * (any delivery when full_batch is 0), idle_ms when caught up, retry_ms after
+ * an error.
  */
 uint32_t tank_uplink_service_next_delay(int result, const struct tank_uplink_service_config *cfg);
 

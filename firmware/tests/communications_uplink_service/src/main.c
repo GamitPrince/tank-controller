@@ -134,6 +134,17 @@ ZTEST(uplink_service, test_next_delay_policy)
 	zassert_equal(tank_uplink_service_next_delay(-ETIMEDOUT, &cfg), RETRY_MS);
 }
 
+ZTEST(uplink_service, test_a_part_batch_means_caught_up)
+{
+	const struct tank_uplink_service_config cfg = {
+	    .idle_ms = SHORT_MS, .retry_ms = RETRY_MS, .full_batch = BATCH_CAP};
+
+	zassert_equal(tank_uplink_service_next_delay(BATCH_CAP, &cfg), 0U, "more may be waiting");
+	zassert_equal(tank_uplink_service_next_delay(BATCH_CAP - 1, &cfg), SHORT_MS);
+	zassert_equal(tank_uplink_service_next_delay(0, &cfg), SHORT_MS);
+	zassert_equal(tank_uplink_service_next_delay(-EIO, &cfg), RETRY_MS);
+}
+
 ZTEST(uplink_service, test_backlog_drains_without_idle_waits_and_stop_is_prompt)
 {
 	int64_t stop_at;

@@ -1,16 +1,20 @@
 /*
  * Send the flash log to the ESP32 over the UART link (S-045, P1-12).
  *
- * tank_uplink_send() is log_forwarder's send_fn (S-039). Each item is
- * encoded as a CBOR record (S-044), sent as one RECORD and waited on until
- * the ESP32 confirms it (S-043), which means the cloud has it. Items go one
- * at a time, in order; the first that fails ends the batch, and the count
- * confirmed before it is returned, so log_forwarder acks those and resends
- * only the rest (ADR-0004 decisions 3 and 5).
+ * tank_uplink_send() is log_forwarder's send_fn (S-039). Items are encoded
+ * as CBOR records (S-044) and packed, up to TANK_UPLINK_BATCH_MAX at a time
+ * and oldest first, into one RECORD frame as the S-062 batch: a CBOR array of
+ * records. Each frame is waited on until the ESP32 confirms it (S-043), which
+ * means the cloud has every record in it; the ESP32 publishes the frame as
+ * one MQTT message (S-064). Frames go one at a time, in order; the first that
+ * fails ends the send, and the count of items in the frames confirmed before
+ * it is returned, so log_forwarder acks those and resends only the rest
+ * (ADR-0004 decisions 3 and 5).
  *
- * An item that cannot be encoded returns -EINVAL and is counted. It stays in
- * the flash log and blocks the items behind it; what to do with an item
- * that can never be sent is a later story.
+ * A frame holds the leading items that encode. An item that cannot be
+ * encoded is counted; when it is the first of a frame, -EINVAL is returned.
+ * It stays in the flash log and blocks the items behind it; what to do with
+ * an item that can never be sent is a later story.
  *
  * Phase 1: records go out and only DELIVERED is read back. Nothing here
  * carries a command to the plant or to the FRDM's measurement.
@@ -30,6 +34,11 @@
 #include "link_sender.h"
 #include "record_cbor.h"
 
+/* Records per frame and per MQTT message (tech lead, 26 Nov 2026). */
+#define TANK_UPLINK_BATCH_MAX 5U
+/* A CBOR array header for up to 23 elements is one byte. */
+#define TANK_UPLINK_FRAME_PAYLOAD_MAX (1U + TANK_UPLINK_BATCH_MAX * TANK_RECORD_CBOR_MAX)
+
 /*
  * Wait up to timeout_ms for one decoded link frame. Returns 0 with *msg
  * filled (its payload valid until the next call), -EAGAIN on timeout, or
@@ -47,6 +56,7 @@ struct tank_uplink_io {
 	void *ctx;
 };
 
+/* sent and confirmed count frames; a frame holds one to five records. */
 struct tank_uplink_stats {
 	uint32_t sent;
 	uint32_t confirmed;
@@ -59,7 +69,7 @@ struct tank_uplink {
 	const char *dev_id;
 	struct tank_uplink_io io;
 	struct tank_link_sender sender;
-	uint8_t record[TANK_RECORD_CBOR_MAX];
+	uint8_t frame[TANK_UPLINK_FRAME_PAYLOAD_MAX];
 	struct tank_uplink_stats stats;
 };
 
@@ -73,8 +83,8 @@ int tank_uplink_init(struct tank_uplink *up, const char *dev_id,
 
 /*
  * A tank_log_send_fn; ctx is the struct tank_uplink. Returns how many
- * leading items the ESP32 confirmed (1 to count), or, when it confirmed
- * none: -ETIMEDOUT when the link gave up, -EINVAL for an item that cannot be
+ * leading items the ESP32 confirmed (1 to count, whole frames), or, when it
+ * confirmed none: -ETIMEDOUT when the link gave up, -EINVAL for an item that cannot be
  * encoded or a bad argument, or the read_fn or write_fn error.
  */
 int tank_uplink_send(void *ctx, const struct tank_log_item *items, size_t count);
