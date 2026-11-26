@@ -49,6 +49,7 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - Simulator pins raised to clear four Dependabot alerts (S-026): `cbor2` 5.6.5 to 5.9.0, which closes two high and one moderate decoder advisory, and `pytest` 8.3.4 to 9.0.3 with `pytest-cov` 7.1.0, which pytest 9 requires. Real exposure in the simulator was low — its one `cbor2.loads` call decodes payloads it produced itself — but the cloud backend of P1-17 will decode real device CBOR off the broker, which is untrusted input, so it starts from a patched decoder. `pyproject.toml` needed no change: `cbor2>=5.6,<6` already admits 5.9.0.
 - The tech lead's decision review of 26 Nov 2026 recorded in `AGENTS.md` and the story pages (S-053): P1-11 (Modbus) and P1-13 (OPC UA) void; density-based mass removed from Phase 1 and S-037 closed; GamitPrince owns the dashboard and prinz-assists QA; no ruleset bypass list; the backend, Terraform, migration, registry, MQTT topic and batching choices; one consolidated record per second; the status of ADR-0007's three cloud gates.
+- `gateway/` removed with its CI job, the `gateway` title scope in `pr-policy`, the template options and the docs that still offered it (S-055; ADR-0004 decision 1, tech lead decision of 26 Nov 2026).
 
 ### Notes
 

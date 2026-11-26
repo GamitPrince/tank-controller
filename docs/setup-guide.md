@@ -67,7 +67,7 @@ It fetches Unity v2.6.1 into `esp32/build/`, builds the host tests with CMake, c
 ## 6. Before you open a pull request
 
 - All three component runs above are green locally for the folders you touched.
-- The title is `type(scope): description`. The scope is one of `firmware gateway dashboard simulator hardware interfaces docs`; ESP32 work uses `firmware`.
+- The title is `type(scope): description`. The scope is one of `firmware dashboard simulator hardware interfaces docs`; ESP32 work uses `firmware`.
 - The body says `Closes #N` for the story issue, and every checklist item is ticked honestly.
 
 ## 7. Second-person check

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs CI for one component: firmware, gateway, dashboard or simulator.
+# Runs CI for one component: firmware, esp32, dashboard or simulator.
 #
 # Contract for each component (decided in the tech-stack ADRs, story P1-00):
 #   <component>/ci.sh   builds, lints, runs the unit tests, and writes

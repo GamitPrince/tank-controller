@@ -75,7 +75,6 @@ done
 step "Labels"
 label() { gh label create "$1" --repo "$REPO" --color "$2" --description "$3" --force >/dev/null; }
 label firmware  1d76db "Component: firmware"
-label gateway   0e8a16 "Component: gateway"
 label dashboard 5319e7 "Component: dashboard"
 label hardware  fbca04 "Component: hardware"
 label docs      0075ca "Component: docs"
