@@ -65,6 +65,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - The FRDM packs up to five records into one link frame (S-063): the uplink sends the S-062 batch, oldest first, and one DELIVERED confirms the frame; the link payload limit rises from 1,024 to 5,120 bytes to fit five worst-case records. The uplink service treats a part batch as caught up, and the application polls every 5 s, so steady state is one frame of five records every 5 s and a backlog drains frame after frame.
 
+- The ESP32 publisher (S-064): each RECORD the FRDM sends, one batch of up to five records, is published unchanged at QoS 1 as one MQTT message on `tank/{device_id}/records`, and DELIVERED goes back to the FRDM only when that message's PUBACK arrives. A failed publish or a stale PUBACK confirms nothing, so the FRDM keeps the records. Host-tested logic; the ESP-IDF MQTT glue comes with the first ESP-IDF build.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
