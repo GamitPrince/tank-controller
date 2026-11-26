@@ -34,7 +34,7 @@ Phase 1, read-only. No input is driven and nothing is written to the safety chai
    - `tank_app_stop()` and `tank_app_sources()` are also provided.
 4. **`firmware/app/`.**
    - The Zephyr application: `main.c` fills the configuration (1 s scans, 1 s clock agreement, 4 KB sectors, the S-039 intervals) and draws the boot id from `sys_rand_get()`.
-   - The log partition is the devicetree's chosen `tank,log-partition`. `boards/native_sim.overlay` points it at the simulated flash's storage partition; the FRDM overlay will point it at the W25Q64.
+   - The log partition is the devicetree's chosen `tank,log-partition`. `boards/native_sim.overlay` points it at the simulated flash's storage partition (`native_sim_native_64.overlay` includes it, because Zephyr looks overlays up by the full board target); the FRDM overlay will point it at the W25Q64.
 5. **`firmware/ci.sh`.** Twister also builds `app/` (build only, native_sim), and clang-format and cppcheck cover it.
 
 ## What a record shows until acquisition exists
