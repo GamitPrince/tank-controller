@@ -6,8 +6,8 @@ from sqlalchemy import Engine, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from tankapi.db import ReadingRow, ScanRow
-from tankapi.records import Quality, Reading, ScanRecord, decode_message
+from tankapi.db import GapRow, ReadingRow, ScanRow
+from tankapi.records import GapRecord, LostScan, Quality, Reading, ScanRecord, decode_message
 
 # The S-067 fixture: five simulator scans, time known from seq 3, 2001 faulted,
 # 1001 out of range, and the digital inputs as bools.
@@ -15,6 +15,13 @@ SIMULATOR_BATCH = bytes.fromhex(
     (Path(__file__).parent / "fixtures" / "simulator-batch-cbor-hex.txt").read_text()
 )
 BOOT = bytes(range(16))
+# The two marks of a gap may come from different boots (records.cddl).
+GAP = GapRecord(
+    device_id="DEV-1",
+    lost=7,
+    first=LostScan(BOOT, sequence=3, uptime_ms=3000, time_known=False, unix_time_s=None),
+    last=LostScan(bytes(16), sequence=9, uptime_ms=900, time_known=True, unix_time_s=1_763_683_209),
+)
 
 
 def store(engine: Engine, *rows: object) -> None:
@@ -99,3 +106,26 @@ def test_value_that_does_not_match_the_quality_is_refused(
 def test_scan_breaking_the_decoder_rules_is_refused(engine: Engine, changes: dict) -> None:
     with pytest.raises(IntegrityError, match="CHECK"):
         store(engine, ScanRow.from_record(scan(**changes)))
+
+
+def test_gap_record_round_trips_with_both_marks(engine: Engine) -> None:
+    store(engine, GapRow.from_record(GAP))
+
+    with Session(engine) as session:
+        assert session.scalars(select(GapRow)).one().to_record() == GAP
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"lost": 0},
+        {"device_id": ""},
+        {"first": replace(GAP.first, time_known=True)},
+        {"last": replace(GAP.last, unix_time_s=None)},
+        {"first": replace(GAP.first, boot_id=bytes(17))},
+        {"last": replace(GAP.last, sequence=-1)},
+    ],
+)
+def test_gap_breaking_the_decoder_rules_is_refused(engine: Engine, changes: dict) -> None:
+    with pytest.raises(IntegrityError, match="CHECK"):
+        store(engine, GapRow.from_record(replace(GAP, **changes)))

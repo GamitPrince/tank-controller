@@ -1,8 +1,8 @@
-"""The database tables for decoded scan records (S-068).
+"""The database tables for decoded records (S-068, S-069).
 
-Two tables hold every scan record :func:`tankapi.records.decode_message`
-returns: ``scan_records`` (one row per scan) and ``readings`` (one row per
-reading, in the order the device sent them). The schema itself is created by
+Three tables hold everything :func:`tankapi.records.decode_message` returns:
+``scan_records`` (one row per scan), ``readings`` (one row per reading, in the
+order the device sent them) and ``gap_records`` (S-069). The schema itself is created by
 the Alembic migrations under ``backend/migrations/``; these models must match
 them, which ``tests/test_db_migrations.py`` checks.
 
@@ -10,10 +10,11 @@ The migration repeats the decoder's rules as check constraints, so a row the
 decoder would refuse cannot be stored either: a faulted or unconfigured reading
 has no value (NULL, never a substitute, AGENTS.md section 7), every other
 reading has exactly one, and ``unix_time_s`` is present exactly when
-``time_known`` is true.
+``time_known`` is true, in scans and in both marks of a gap. A gap record
+marks scans that will never arrive; nothing may interpolate across one (S-040).
 
-Only the mapping lives here. The gap-record table, writing records,
-de-duplication and ingest are later stories.
+Only the mapping lives here. Writing records, de-duplication and ingest are
+later stories.
 """
 
 from __future__ import annotations
@@ -31,7 +32,15 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from tankapi.records import BOOT_ID_BYTES, DEVICE_ID_MAX_BYTES, Quality, Reading, ScanRecord
+from tankapi.records import (
+    BOOT_ID_BYTES,
+    DEVICE_ID_MAX_BYTES,
+    GapRecord,
+    LostScan,
+    Quality,
+    Reading,
+    ScanRecord,
+)
 
 # SQLite only auto-numbers an INTEGER primary key; Postgres gets BIGINT.
 ROW_ID = BigInteger().with_variant(Integer(), "sqlite")
@@ -122,3 +131,54 @@ class ReadingRow(Base):
     def to_reading(self) -> Reading:
         value = self.value_bool if self.value_bool is not None else self.value_int
         return Reading(self.signal_id, Quality(self.quality), self.age_ms, value)
+
+
+class GapRow(Base):
+    """One gap record: ``lost`` scans from ``first`` to ``last`` were dropped."""
+
+    __tablename__ = "gap_records"
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    device_id: Mapped[str] = mapped_column(String(DEVICE_ID_MAX_BYTES))
+    lost: Mapped[int] = mapped_column(BigInteger)
+    first_boot_id: Mapped[bytes] = mapped_column(LargeBinary(BOOT_ID_BYTES))
+    first_sequence: Mapped[int] = mapped_column(BigInteger)
+    first_uptime_ms: Mapped[int] = mapped_column(BigInteger)
+    first_time_known: Mapped[bool] = mapped_column(Boolean)
+    first_unix_time_s: Mapped[int | None] = mapped_column(BigInteger)
+    last_boot_id: Mapped[bytes] = mapped_column(LargeBinary(BOOT_ID_BYTES))
+    last_sequence: Mapped[int] = mapped_column(BigInteger)
+    last_uptime_ms: Mapped[int] = mapped_column(BigInteger)
+    last_time_known: Mapped[bool] = mapped_column(Boolean)
+    last_unix_time_s: Mapped[int | None] = mapped_column(BigInteger)
+
+    @classmethod
+    def from_record(cls, record: GapRecord) -> GapRow:
+        return cls(
+            device_id=record.device_id,
+            lost=record.lost,
+            **_mark_columns("first", record.first),
+            **_mark_columns("last", record.last),
+        )
+
+    def to_record(self) -> GapRecord:
+        return GapRecord(self.device_id, self.lost, self._mark("first"), self._mark("last"))
+
+    def _mark(self, end: str) -> LostScan:
+        return LostScan(
+            boot_id=getattr(self, f"{end}_boot_id"),
+            sequence=getattr(self, f"{end}_sequence"),
+            uptime_ms=getattr(self, f"{end}_uptime_ms"),
+            time_known=getattr(self, f"{end}_time_known"),
+            unix_time_s=getattr(self, f"{end}_unix_time_s"),
+        )
+
+
+def _mark_columns(end: str, mark: LostScan) -> dict[str, object]:
+    return {
+        f"{end}_boot_id": mark.boot_id,
+        f"{end}_sequence": mark.sequence,
+        f"{end}_uptime_ms": mark.uptime_ms,
+        f"{end}_time_known": mark.time_known,
+        f"{end}_unix_time_s": mark.unix_time_s,
+    }
