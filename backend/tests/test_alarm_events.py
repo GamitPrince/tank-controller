@@ -14,6 +14,7 @@ from tankapi.db import AlarmEventRow, AlarmThresholdRow, CustomerRow, PlantRow, 
 from tankapi.thresholds import ThresholdError, ThresholdInForce, thresholds_at
 
 RAISED = {"state": "high", "value": 18_100.0, "quality": 0}
+_UNTIMED = ("cannot_evaluate", "time_unknown", None)
 
 
 def event(**fields) -> AlarmEventRow:
@@ -57,7 +58,7 @@ def test_a_raise_and_its_clear_are_two_rows(site: Engine) -> None:
     add(site, event(state="normal", value=17_700.0, scan_record_id=3, unix_time_s=SET + 1))
     assert events(site) == [
         ("high", None, SET),
-        ("cannot_evaluate", "time_unknown", None),
+        _UNTIMED,
         ("normal", None, SET + 1),
     ]
 
@@ -88,7 +89,7 @@ def test_an_event_is_never_changed_or_deleted(site: Engine, statement: str) -> N
         ({"value": None}, "judged_or_reason"),
         (_unknown("fault") | {"value": 1.0}, "judged_or_reason"),
         ({"quality": 5}, "quality_known"),
-        ({"quality": None}, "quality_unless_no_reading"),
+        ({"quality": None}, "quality_unless_unread"),
         ({"unix_time_s": None}, "untimed_time_unknown"),
         (_unknown("fault") | {"unix_time_s": None}, "untimed_time_unknown"),
         ({"unix_time_s": -1}, "time_uint"),
@@ -104,7 +105,8 @@ def test_the_database_refuses_an_event_that_breaks_a_rule(
 
 def test_a_missing_reading_has_no_quality(site: Engine) -> None:
     add(site, event(quality=None, **_unknown("no_reading")))
-    assert events(site) == [("cannot_evaluate", "no_reading", SET)]
+    add(site, event(scan_record_id=2, unix_time_s=None, quality=None, **_unknown("time_unknown")))
+    assert events(site) == [("cannot_evaluate", "no_reading", SET), _UNTIMED]
 
 
 @pytest.mark.parametrize(

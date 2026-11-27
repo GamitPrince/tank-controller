@@ -32,6 +32,8 @@ ROW_ID = sa.BigInteger().with_variant(sa.Integer(), "sqlite")
 STATES = "'normal', 'high', 'low', 'cannot_evaluate'"
 REASONS = "'no_reading', 'fault', 'unconfigured', 'stale', 'time_unknown', 'out_of_range'"
 UNKNOWN = "state = 'cannot_evaluate'"
+NO_QUALITY = "'no_reading', 'time_unknown'"
+UNTIMED = "'time_unknown'"
 REFUSAL = f"{TABLE} is append-only"
 FUNCTION = f"{TABLE}_refuse_change"
 
@@ -56,8 +58,8 @@ def _ck(name: str, condition: str) -> sa.CheckConstraint:
     return sa.CheckConstraint(condition, name=op.f(f"ck_{TABLE}_{name}"))
 
 
-def _reason_is(reason: str) -> str:
-    return f"COALESCE(reason = '{reason}', FALSE)"
+def _reason_in(reasons: str) -> str:
+    return f"COALESCE(reason IN ({reasons}), FALSE)"
 
 
 def _dialect() -> str:
@@ -98,9 +100,10 @@ def upgrade() -> None:
             f" OR (NOT ({UNKNOWN}) AND reason IS NULL AND value IS NOT NULL)",
         ),
         _ck("quality_known", "quality IS NULL OR quality BETWEEN 0 AND 4"),
-        # COALESCE: a NULL reason must fail these, not pass them as unknown.
-        _ck("quality_unless_no_reading", f"quality IS NOT NULL OR {_reason_is('no_reading')}"),
-        _ck("untimed_time_unknown", f"unix_time_s IS NOT NULL OR {_reason_is('time_unknown')}"),
+        # COALESCE: a NULL reason must fail these, not pass them as unknown. An untimed
+        # scan may lack the signal too; it is still time_unknown.
+        _ck("quality_unless_unread", f"quality IS NOT NULL OR {_reason_in(NO_QUALITY)}"),
+        _ck("untimed_time_unknown", f"unix_time_s IS NOT NULL OR {_reason_in(UNTIMED)}"),
         _ck("time_uint", "unix_time_s IS NULL OR unix_time_s >= 0"),
         _ck("deadband_uint", "deadband >= 0"),
     )

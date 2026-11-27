@@ -82,7 +82,7 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "RAISE EXCEPTION 'alarm_events is append-only'" in sql
     assert "BEFORE UPDATE OR DELETE ON alarm_events FOR EACH ROW" in sql
     assert "BEFORE TRUNCATE ON alarm_events FOR EACH STATEMENT" in sql
-    assert "CHECK (unix_time_s IS NOT NULL OR COALESCE(reason = 'time_unknown', FALSE))" in sql
+    assert "CHECK (unix_time_s IS NOT NULL OR COALESCE(reason IN ('time_unknown'), FALSE))" in sql
 
 
 @pytest.mark.parametrize(
