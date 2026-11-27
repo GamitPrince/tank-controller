@@ -20,6 +20,9 @@ unclaimed device is still stored. ``device_assignments`` keeps history: a move
 closes one row and opens the next, so a reading still belongs to the tank it was
 taken on.
 
+``audit_entries`` is the append-only audit trail (S-079): its migration's
+triggers refuse UPDATE and DELETE. Nothing writes it yet.
+
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
 """
@@ -36,6 +39,7 @@ from sqlalchemy import (
     MetaData,
     SmallInteger,
     String,
+    Text,
     UniqueConstraint,
     text,
 )
@@ -63,6 +67,11 @@ NAMING_CONVENTION = {
 }
 
 NAME_MAX_CHARS = 100
+# A Cognito sub is a 36-character UUID; a route template is a path.
+SUBJECT_MAX_CHARS = 128
+ROLE_MAX_CHARS = 16
+METHOD_MAX_CHARS = 8
+ROUTE_MAX_CHARS = 200
 # An assignment with no end is the device's current one; a device has at most one.
 OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
 
@@ -257,3 +266,20 @@ class AssignmentRow(Base):
     tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
     valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
     valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class AuditRow(Base):
+    """One ``/v1`` request by a service caller; ``query`` is a JSON object of its selecting
+    parameters. The database refuses UPDATE and DELETE (S-079)."""
+
+    __tablename__ = "audit_entries"
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    at_unix_ms: Mapped[int] = mapped_column(BigInteger)
+    subject: Mapped[str] = mapped_column(String(SUBJECT_MAX_CHARS))
+    role: Mapped[str] = mapped_column(String(ROLE_MAX_CHARS))
+    method: Mapped[str] = mapped_column(String(METHOD_MAX_CHARS))
+    route: Mapped[str] = mapped_column(String(ROUTE_MAX_CHARS))
+    device_id: Mapped[str | None] = mapped_column(String(DEVICE_ID_MAX_BYTES))
+    query: Mapped[str] = mapped_column(Text)
+    status: Mapped[int] = mapped_column(SmallInteger)

@@ -16,6 +16,7 @@ TABLES = {"scan_records", "readings", "gap_records"} | {
     "tanks",
     "devices",
     "device_assignments",
+    "audit_entries",
 }
 
 
@@ -59,6 +60,21 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "CONSTRAINT ck_gap_records_lost_at_least_one CHECK (lost >= 1)" in sql
     assert "FOREIGN KEY(tank_id) REFERENCES tanks (id)" in sql
     assert "ON device_assignments (device_id) WHERE valid_to_unix_s IS NULL" in sql
+    # Rendered only: no Postgres server runs these until the TimescaleDB container story.
+    assert "RAISE EXCEPTION 'audit_entries is append-only'" in sql
+    assert "BEFORE UPDATE OR DELETE ON audit_entries FOR EACH ROW" in sql
+    assert "BEFORE TRUNCATE ON audit_entries FOR EACH STATEMENT" in sql
+
+
+def test_postgres_downgrade_drops_the_audit_function_offline() -> None:
+    output = StringIO()
+    config = Config(ALEMBIC_INI, output_buffer=output)
+    config.set_main_option("sqlalchemy.url", "postgresql://")
+
+    command.downgrade(config, "0004:0003", sql=True)
+
+    assert "DROP TABLE audit_entries" in output.getvalue()
+    assert "DROP FUNCTION audit_entries_refuse_change()" in output.getvalue()
 
 
 def test_url_comes_from_the_environment_and_is_required(

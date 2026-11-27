@@ -2,11 +2,11 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import Engine, select, text
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
-from tankapi.db import GapRow, ReadingRow, ScanRow
+from tankapi.db import AuditRow, GapRow, ReadingRow, ScanRow
 from tankapi.records import GapRecord, LostScan, Quality, Reading, ScanRecord, decode_message
 
 # The S-067 fixture: five simulator scans, time known from seq 3, 2001 faulted,
@@ -129,3 +129,38 @@ def test_gap_record_round_trips_with_both_marks(engine: Engine) -> None:
 def test_gap_breaking_the_decoder_rules_is_refused(engine: Engine, changes: dict) -> None:
     with pytest.raises(IntegrityError, match="CHECK"):
         store(engine, GapRow.from_record(replace(GAP, **changes)))
+
+
+# A made-up service caller's read (S-079).
+AUDIT = {
+    "at_unix_ms": 1_763_683_200_000,
+    "subject": "staff-1",
+    "role": "service",
+    "method": "GET",
+    "route": "/v1/devices/{device_id}/readings",
+    "device_id": "DEV-1",
+    "query": "{}",
+    "status": 200,
+}
+
+
+@pytest.mark.parametrize(
+    "statement", ["UPDATE audit_entries SET status = 404", "DELETE FROM audit_entries"]
+)
+def test_audit_entry_is_never_changed_or_deleted(engine: Engine, statement: str) -> None:
+    store(engine, AuditRow(**AUDIT))
+
+    with pytest.raises(DBAPIError, match="audit_entries is append-only"), engine.begin() as db:
+        db.execute(text(statement))
+
+    with Session(engine) as session:
+        assert session.scalars(select(AuditRow.status)).all() == [200]
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [{"role": "auditor"}, {"status": 99}, {"status": 600}, {"subject": ""}, {"at_unix_ms": -1}],
+)
+def test_audit_entry_breaking_the_table_rules_is_refused(engine: Engine, changes: dict) -> None:
+    with pytest.raises(IntegrityError):
+        store(engine, AuditRow(**(AUDIT | changes)))
