@@ -42,7 +42,8 @@ def client(engine: Engine) -> Iterator[TestClient]:
     ingest(engine, PAYLOAD)
     app.dependency_overrides[session.get_engine] = lambda: engine
     app.dependency_overrides[auth.get_settings] = access_tokens.settings
-    yield TestClient(app, headers=access_tokens.bearer())
+    # S-072's behaviour is what service sees; what a customer sees is in test_isolation.py.
+    yield TestClient(app, headers=access_tokens.bearer(**{auth.GROUPS_CLAIM: ["service"]}))
     app.dependency_overrides.clear()
 
 
@@ -158,15 +159,6 @@ def test_more_points_than_the_limit_is_refused(
 
     assert response.status_code == 422
     assert "narrow the range" in response.json()["detail"]
-
-
-@pytest.mark.parametrize("role", list(auth.Role))
-def test_every_role_may_read_readings(client: TestClient, role: auth.Role) -> None:
-    # No per-role rule yet (S-076): all four roles read, as ADR-0008's operator does.
-    headers = access_tokens.bearer(**{auth.GROUPS_CLAIM: [role.value]})
-    response = client.get(URL, params={"signal": 1001, "from": T, "to": T + 60}, headers=headers)
-
-    assert response.status_code == 200, response.text
 
 
 @pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
