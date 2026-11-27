@@ -12,3 +12,7 @@ httpx2==2.16.2
 # ranges that a consumer of the package gets are in pyproject.toml.
 fastapi==0.165.0
 uvicorn==0.54.0
+# cbor2 matches simulator/requirements-dev.txt and stays on 5.9.0 (S-028): it
+# writes and reads the records of interfaces/records.cddl, so firmware,
+# simulator and backend move together or not at all.
+cbor2==5.9.0

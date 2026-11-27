@@ -8,6 +8,7 @@ requires-python = ">=3.10"
 dependencies = [
   "fastapi>=0.165,<1",  # the REST API (ADR-0008 decision 1)
   "uvicorn>=0.54,<1",   # the ASGI server that runs it
+  "cbor2>=5.6,<6",      # CBOR records (ADR-0004 decision 6), the simulator's range
 ]
 
 [build-system]
