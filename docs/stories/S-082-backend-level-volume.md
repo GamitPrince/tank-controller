@@ -25,8 +25,8 @@ Phase 1, read-only for plant data. A pure calculation on values the device alrea
 None. `interfaces/` and the OpenAPI document are unchanged. The strapping-table and computed-record schemas that S-035 places in `interfaces/` are a later story.
 
 ## Acceptance criteria
-- A good reading in range gives `ok` with the level height (the transducer range scaled linearly over 4 to 20 mA), level % of `max_height_mm` ([Confirm] 2) and the interpolated volume, each reproducing hand-calculated values and every strapping point exactly (well inside S-035's 0.5%).
-- Reading quality `stale` gives `stale`; `out-of-range` gives `out_of_range`; `fault` and `unconfigured` give `fault` ([Confirm] 3). A `good` reading outside 4 000 to 20 000 µA gives `out_of_range`, and a true/false value gives `fault`.
+- A good reading in range gives `ok` with the level height (the transducer range scaled linearly over 4 to 20 mA), level % of `max_height_mm` (the height, resolved 27 Nov 2026) and the interpolated volume, each reproducing hand-calculated values and every strapping point exactly (well inside S-035's 0.5%).
+- Reading quality `stale` gives `stale`; `out-of-range` gives `out_of_range`; `fault` and `unconfigured` give `fault` (resolved 27 Nov 2026). A `good` reading outside 4 000 to 20 000 µA gives `out_of_range`, and a true/false value gives `fault`.
 - A level below the lowest strapping point or above the highest gives `out_of_range`, not an extrapolation.
 - Every result, `ok` or not, carries the table's `version` and `CALCULATION_VERSION`; only `ok` carries figures, every other status has none.
 - A table whose numbers are not finite, whose version is below 1, whose transducer range does not rise from 0 mm or more, which has fewer than two points, whose first point is negative, whose points do not rise in both height and volume, or whose points end above `max_height_mm`, is refused when it is made.
@@ -38,10 +38,12 @@ pytest, locally on Windows against the new test file and in GitHub CI (`backend`
 ## Out of scope
 Split into later stories to stay under about 300 changed lines: the strapping-table storage (versioned rows with `effective_from`, a migration), choosing the version in effect at a scan's time, storing computed results, the admin endpoint to edit a table with its audit entry (ADR-0008 decisions 3 and 4), the `interfaces/` schemas for the table and the computed record, and wiring the calculation into ingest or the readings endpoint. Also out: the real pilot table, any mass or density, comparing pressure with radar (Phase 2), any AWS resource, and any dashboard screen.
 
+## Resolved by the tech lead, 27 Nov 2026
+- Level % is the level height as a share of the tank's full height (`max_height_mm`), not the volume as a share of the full volume.
+- The quality mapping was left to the author and is kept as built: a reading the firmware flags `out-of-range` (3.6 to 4.0 or 20 to 21 mA) gives `out_of_range`, because the transmitter works but the level is past its span; `unconfigured` gives `fault`, because S-035's enum has no unconfigured state. Neither carries a figure.
+- No minimum point count beyond the two that interpolation needs (S-035 open question 3): S-035's 0.5% accuracy criterion, checked against the tank's own calibration chart, is what proves a table fine enough.
+- `CALCULATION_VERSION` is a whole number raised by hand whenever the method changes, not a git commit hash.
+
 ## Open questions
 1. `[Confirm]` The pilot tank's real strapping table, transducer range and full height, from the tech lead at commissioning. Customer data: entered into the cloud table, never committed here.
-2. `[Confirm]` Level % is the level height as a share of the tank's full height (`max_height_mm`), not the volume as a share of the full volume.
-3. `[Confirm]` A reading the firmware flags `out-of-range` (3.6 to 4.0 or 20 to 21 mA) gives `out_of_range`, and `unconfigured` gives `fault`; S-035's enum has no separate unconfigured state.
-4. `[Confirm]` A table needs at least two points (S-035 open question 3: whether to require more).
-5. `[Confirm]` NAMUR NE43 limits 3.6 and 21 mA (S-034's open item, only referenced here).
-6. `[Confirm]` `CALCULATION_VERSION` is a whole number raised by hand whenever the method changes, rather than a git commit hash.
+2. `[Confirm]` NAMUR NE43 limits 3.6 and 21 mA, against the radar transmitter's datasheet or settings (S-034's open item, only referenced here).

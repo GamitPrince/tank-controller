@@ -34,7 +34,8 @@ RADAR_LEVEL_SIGNAL_ID = 1001
 # signals-v1.yaml, signal 1001: sent in microamps, valid from 4.0 to 20.0 mA.
 LOOP_LOW_UA = 4_000
 LOOP_HIGH_UA = 20_000
-# Interpolation needs two points. [Confirm] whether a table needs more (S-035).
+# Interpolation needs two points. No higher count is required: S-035's 0.5% accuracy
+# criterion against the tank's calibration chart proves a table (tech lead, 27 Nov 2026).
 MIN_STRAPPING_POINTS = 2
 PERCENT = 100.0
 
