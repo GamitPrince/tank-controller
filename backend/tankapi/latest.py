@@ -14,7 +14,9 @@ once a minute is found too. Each carries its quality, age and value as stored
 newest stored scan has no known time (its clock is not yet set, ADR-0004
 decision 11), otherwise the state of the newest timed scan the caller may see,
 and ``stale`` when there is none. ``server_time`` is the clock they were judged
-against.
+against. ``level`` is the tank's level % and volume, computed on read from the
+newest radar reading shown, or a status saying why there are none (S-086,
+``tankapi.tank_level``).
 
 Scoping follows S-078, narrowed to now ``[Confirm]``: a customer's caller sees a
 device only while it is on one of their tanks, and then only scans from the
@@ -32,6 +34,7 @@ from sqlalchemy.orm import Session
 
 from tankapi.auth import Caller, require_caller
 from tankapi.db import ReadingRow, ScanRow
+from tankapi.level import RADAR_LEVEL_SIGNAL_ID
 from tankapi.liveness import (
     Liveness,
     StaleRules,
@@ -49,6 +52,7 @@ from tankapi.readings import (
 )
 from tankapi.records import DEVICE_ID_MAX_BYTES, Reading
 from tankapi.session import get_session
+from tankapi.tank_level import TankLevel, tank_level
 
 # Two periods of the slowest signal (device health, every 60 s). [Confirm]
 LOOKBACK_S = 120
@@ -56,6 +60,10 @@ LIVENESS_HELP = (
     "`live` only while current by the server clock; `stale` when a newer value is "
     "overdue or the device marked it stale; `time-unknown` when its scan's time is "
     "not known. Show a value as live and good only when this is `live` and `quality` is `good`."
+)
+LEVEL_HELP = (
+    "Level % and volume computed on read from the newest radar reading above, with the "
+    "configuration of the tank the device was on at its time. Figures only when `status` is `ok`."
 )
 
 
@@ -81,6 +89,7 @@ class Latest(BaseModel):
     device: Liveness = Field(description="Whether the device's newest scan is current.")
     last_t: int | None = Field(description="The newest timed scan the caller may see.")
     values: list[LatestValue]
+    level: TankLevel = Field(description=LEVEL_HELP)
 
 
 router = APIRouter()
@@ -116,18 +125,25 @@ def get_latest(
         device = Liveness.TIME_UNKNOWN
     else:
         device = Liveness.STALE if last_t is None else scan_liveness(last_t, now, rules)
-    values = [] if last_t is None else _values(session, device_id, last_t, shown, now, rules)
-    return Latest(device_id=device_id, server_time=now, device=device, last_t=last_t, values=values)
+    newest = {} if last_t is None else _newest(session, device_id, last_t, shown)
+    values = [_value(*newest[signal], now, rules) for signal in sorted(newest)]
+    radar = newest.get(RADAR_LEVEL_SIGNAL_ID)
+    timed_radar = None if radar is None else (radar[0].unix_time_s, radar[1])
+    level = tank_level(session, device_id, timed_radar, now, rules)
+    return Latest(
+        device_id=device_id,
+        server_time=now,
+        device=device,
+        last_t=last_t,
+        values=values,
+        level=level,
+    )
 
 
-def _values(
-    session: Session,
-    device_id: str,
-    last_t: int,
-    shown: list[ColumnElement[bool]],
-    now: float,
-    rules: StaleRules,
-) -> list[LatestValue]:
+def _newest(
+    session: Session, device_id: str, last_t: int, shown: list[ColumnElement[bool]]
+) -> dict[int, tuple[ScanRow, Reading]]:
+    """Each signal's newest reading, with its scan, from the ``LOOKBACK_S`` up to ``last_t``."""
     t = ScanRow.unix_time_s
     query = (
         select(ScanRow, ReadingRow)
@@ -136,12 +152,11 @@ def _values(
         .where(t > last_t - LOOKBACK_S, t <= last_t)
         .order_by(t.desc(), ScanRow.id.desc())
     )
-    newest: dict[int, LatestValue] = {}
+    newest: dict[int, tuple[ScanRow, Reading]] = {}
     for scan, row in session.execute(query):
         reading = row.to_reading()
-        if reading.signal_id not in newest:
-            newest[reading.signal_id] = _value(scan, reading, now, rules)
-    return [newest[signal] for signal in sorted(newest)]
+        newest.setdefault(reading.signal_id, (scan, reading))
+    return newest
 
 
 def _value(scan: ScanRow, reading: Reading, now: float, rules: StaleRules) -> LatestValue:

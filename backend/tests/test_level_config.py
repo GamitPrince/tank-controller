@@ -1,4 +1,4 @@
-"""A tank's stored level configuration (S-085): the schema's rules.
+"""A tank's stored level configuration: the schema's rules (S-085) and the read helper (S-086).
 
 TEST DATA ONLY. Every customer, tank and strapping table here is made up; a
 real tank's table is customer data and never enters this repository.
@@ -12,7 +12,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from tankapi.db import CustomerRow, LevelConfigRow, PlantRow, StrappingPointRow, TankRow
-from tankapi.level import CALCULATION_VERSION
+from tankapi.level import (
+    CALCULATION_VERSION,
+    LevelStatus,
+    StrappingPoint,
+    StrappingTable,
+    compute_level,
+)
+from tankapi.level_config import LevelConfig, LevelConfigError, level_config_at
+from tankapi.records import Quality, Reading
 
 CONFIGURED = 1_763_683_200
 CHANGED = CONFIGURED + 86_400
@@ -63,6 +71,11 @@ def add(engine: Engine, *rows: object) -> None:
         session.commit()
 
 
+def at(engine: Engine, tank_id: int, unix_time_s: int) -> LevelConfig | None:
+    with Session(engine) as session:
+        return level_config_at(session, tank_id, unix_time_s)
+
+
 @pytest.fixture
 def site(engine: Engine) -> Engine:
     """Example Co's Tank 1 configured from CONFIGURED; Tank 2 has no configuration."""
@@ -95,6 +108,63 @@ def test_a_change_closes_one_configuration_and_opens_the_next(site: Engine) -> N
             (1, CHANGED),
             (2, None),
         ]
+
+
+def test_a_configured_tank_gives_its_table_and_calculation_version(site: Engine) -> None:
+    table = StrappingTable(1, 0.0, 3200.0, 2000.0, tuple(StrappingPoint(*p) for p in POINTS))
+    assert at(site, 1, CONFIGURED) == LevelConfig(CALCULATION_VERSION, table)
+    assert at(site, 1, CHANGED) == LevelConfig(CALCULATION_VERSION, table)
+
+
+@pytest.mark.parametrize(
+    ("level_mm", "percent", "volume_l"),
+    [(0, 0.0, 0.0), (500, 25.0, 520.0), (625, 31.25, 760.0), (1375, 68.75, 2250.0)],
+)
+def test_the_stored_table_gives_figures_at_and_between_its_points(
+    site: Engine, level_mm: int, percent: float, volume_l: float
+) -> None:
+    reading = Reading(1001, Quality.GOOD, 0, 4_000 + 5 * level_mm)
+    result = compute_level(reading, at(site, 1, CONFIGURED).table)
+    assert (result.status, result.level_percent) == (LevelStatus.OK, percent)
+    assert result.volume_l == pytest.approx(volume_l)
+
+
+def test_the_helper_gives_the_configuration_in_force_at_each_time(site: Engine) -> None:
+    with Session(site) as session:
+        session.execute(update(LevelConfigRow).values(valid_to_unix_s=CHANGED))
+        session.commit()
+    add(site, config(2, 1, 2, CHANGED, max_height_mm=2500.0))
+    add(site, *chained(2, (*POINTS, (2500.0, 4400.0))))
+    assert at(site, 1, CHANGED - 1).table.version == 1
+    assert at(site, 1, CHANGED).table.max_height_mm == 2500.0
+    assert at(site, 1, CONFIGURED - 1) is None
+    assert at(site, 2, CONFIGURED) is None
+    assert at(site, 9, CONFIGURED) is None
+
+
+def test_overlapping_configurations_raise_instead_of_picking_one(site: Engine) -> None:
+    add(site, config(2, 2, 1, 0, CHANGED), config(3, 2, 2, CONFIGURED, CHANGED))
+    with pytest.raises(LevelConfigError, match="overlapping"):
+        at(site, 2, CONFIGURED)
+
+
+@pytest.mark.parametrize(
+    ("points", "refusal"),
+    [(((0.0, 0.0),), "at least 2 points"), (((0.0, 0.0), (2100.0, 50.0)), "full height")],
+)
+def test_a_stored_table_that_compute_level_refuses_raises(
+    site: Engine, points: tuple[tuple[float, float], ...], refusal: str
+) -> None:
+    add(site, config(2, 2, 1, CONFIGURED))
+    add(site, *chained(2, points))
+    with pytest.raises(LevelConfigError, match=refusal):
+        at(site, 2, CONFIGURED)
+
+
+@pytest.mark.parametrize("unix_time_s", [None, True, 1.5])
+def test_a_time_that_is_not_whole_seconds_is_refused(site: Engine, unix_time_s: object) -> None:
+    with pytest.raises(TypeError):
+        at(site, 1, unix_time_s)
 
 
 @pytest.mark.parametrize(
