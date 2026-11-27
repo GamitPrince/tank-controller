@@ -1,13 +1,14 @@
 from collections.abc import Iterator
 from pathlib import Path
 
+import access_tokens
 import cbor2
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, make_url
 from sqlalchemy.orm import Session
 
-from tankapi import readings, session
+from tankapi import auth, readings, session
 from tankapi.ingest import Accepted, ingest_message
 from tankapi.main import app
 
@@ -40,7 +41,8 @@ def gap(seq: int, first_t: int | None, last_t: int | None) -> dict:
 def client(engine: Engine) -> Iterator[TestClient]:
     ingest(engine, PAYLOAD)
     app.dependency_overrides[session.get_engine] = lambda: engine
-    yield TestClient(app)
+    app.dependency_overrides[auth.get_settings] = access_tokens.settings
+    yield TestClient(app, headers=access_tokens.bearer())
     app.dependency_overrides.clear()
 
 
