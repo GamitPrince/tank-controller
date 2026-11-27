@@ -21,8 +21,9 @@ other group names are ignored. The customer is ``custom:customer_id``, our
 tied to one. A token that passes but names no role, two roles, or no usable
 customer gets 403 with a fixed detail; the reason is logged, never the token.
 A handler takes the caller with ``Depends(require_caller)``; FastAPI runs the
-check once per request. Until per-customer scoping lands, any valid token reads
-any device, and service access is not yet audited.
+check once per request. A customer's caller reads only that customer's share of
+a device (S-078, ``tankapi.readings``); service reads every device and is not
+audited yet.
 """
 
 from __future__ import annotations
