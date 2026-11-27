@@ -26,6 +26,7 @@ jobs:
       dashboard: ${{ steps.diff.outputs.dashboard }}
       simulator: ${{ steps.diff.outputs.simulator }}
       esp32: ${{ steps.diff.outputs.esp32 }}
+      backend: ${{ steps.diff.outputs.backend }}
       docs: ${{ steps.diff.outputs.docs }}
     steps:
       - uses: actions/checkout@v7
@@ -45,6 +46,7 @@ jobs:
           if [ "$(has '^(simulator/|firmware/)')" = true ] || [ "$shared" = true ]; then out simulator true; else out simulator false; fi
           # Both boards build the link library in shared/link-protocol/ (S-056).
           if [ "$(has '^(esp32/|shared/link-protocol/|firmware/\.clang-format)')" = true ] || [ "$shared" = true ]; then out esp32 true; else out esp32 false; fi
+          if [ "$(has '^backend/')" = true ] || [ "$shared" = true ]; then out backend true; else out backend false; fi
           if [ "$(has '^(docs/|[^/]*\.md$)')" = true ] || [ "$shared" = true ]; then out docs true; else out docs false; fi
 
   firmware:
@@ -104,6 +106,17 @@ jobs:
       - uses: actions/checkout@v7
       - run: bash scripts/ci/run-component.sh esp32
 
+  # The FastAPI backend (ADR-0008, S-066).
+  backend:
+    name: backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/ci/run-component.sh backend
+
   docs:
     name: docs-links
     needs: changes
@@ -119,7 +132,7 @@ jobs:
   ci-gate:
     name: ci-gate
     if: always()
-    needs: [changes, firmware, dashboard, simulator, esp32, docs]
+    needs: [changes, firmware, dashboard, simulator, esp32, backend, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
