@@ -15,6 +15,10 @@ untimed scan (``tk`` false) has no ``unix_time_s``, and it must never be placed
 on the current tank by its arrival time (S-073 ``[Confirm]`` 3). ``owner_at``
 takes whole Unix seconds and refuses anything else.
 
+``customer_windows`` (S-077) answers the same question for a whole time range
+at once, for one customer, so a query can filter a range's scans in one go
+instead of asking ``owner_at`` once per scan.
+
 Nothing here writes. Claiming, moving, releasing and the audit trail are later
 stories.
 """
@@ -23,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from itertools import pairwise
 
 from sqlalchemy import ColumnElement, and_, or_, select
 from sqlalchemy.orm import Session
@@ -48,6 +53,14 @@ class Unowned(Enum):
 
 class OverlappingAssignmentsError(RuntimeError):
     """More than one assignment holds at once, so the owner cannot be told."""
+
+
+@dataclass(frozen=True)
+class Window:
+    """A stretch ``[start, end)`` on one customer's tanks; ``end`` is ``None`` while it lasts."""
+
+    start: int
+    end: int | None
 
 
 def owner_now(session: Session, device_id: str) -> Owner | Unowned:
@@ -83,3 +96,38 @@ def _resolve(session: Session, device_id: str, held: ColumnElement[bool]) -> Own
         return Owner(*rows[0])
     known = session.get(DeviceRow, device_id) is not None
     return Unowned.UNCLAIMED if known else Unowned.UNKNOWN
+
+
+def customer_windows(
+    session: Session, device_id: str, customer_id: int, start: int, end: int
+) -> list[Window]:
+    """The stretches of time the device spent on tanks of ``customer_id`` that reach into
+    ``[start, end)``, oldest first; an empty list if none.
+
+    Each second in the range is in a window exactly when ``owner_at`` names this customer.
+    A window keeps its own start and end, not the range's, and back-to-back assignments of
+    the customer (a move between its own tanks) are one window, so a caller can tell whether
+    a span of time lay wholly with this customer. An overlap anywhere in the device's
+    assignments raises :class:`OverlappingAssignmentsError`, even outside the range.
+    """
+    query = (
+        select(AssignmentRow.valid_from_unix_s, AssignmentRow.valid_to_unix_s, PlantRow.customer_id)
+        .join(TankRow, TankRow.id == AssignmentRow.tank_id)
+        .join(PlantRow, PlantRow.id == TankRow.plant_id)
+        .where(AssignmentRow.device_id == device_id)
+        .order_by(AssignmentRow.valid_from_unix_s)
+    )
+    rows = session.execute(query).all()
+    # Sorted by start, two rows overlap only if two neighbours do.
+    for (_, earlier_end, _), (later_start, _, _) in pairwise(rows):
+        if earlier_end is None or earlier_end > later_start:
+            raise OverlappingAssignmentsError(f"device {device_id!r} has overlapping assignments")
+    windows: list[Window] = []
+    for valid_from, valid_to, owner in rows:
+        if owner != customer_id:
+            continue
+        if windows and windows[-1].end == valid_from:
+            windows[-1] = Window(windows[-1].start, valid_to)
+        else:
+            windows.append(Window(valid_from, valid_to))
+    return [w for w in windows if w.start < end and (w.end is None or w.end > start)]
