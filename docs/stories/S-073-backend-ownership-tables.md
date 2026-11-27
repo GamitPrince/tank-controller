@@ -43,7 +43,7 @@ pytest, run locally on Windows (Git Bash, `PYTHON=python bash scripts/ci/run-com
 No bench test is needed, because nothing touches hardware.
 
 ## Out of scope
-**The read helper** that resolves a device ID to its tank, plant and customer, now or at a given time, or reports it unclaimed. It was written in this story and split out to the next story for PR size, with no migration needed. Also out of scope: users, roles and Cognito; per-customer filtering on the readings endpoint; the claim flow, QR codes and certificates; admin screens and any write endpoint; the audit trail; what happens to records from unclaimed devices; the TimescaleDB container, the queue consumer, the IoT Core rule, the Docker image, Terraform and the dashboard.
+**The read helper** that resolves a device ID to its tank, plant and customer, now or at a given time, or reports it unclaimed. It was written in this story and split out to S-074 (`S-074-backend-device-owner.md`) for PR size, with no migration needed. Also out of scope: users, roles and Cognito; per-customer filtering on the readings endpoint; the claim flow, QR codes and certificates; admin screens and any write endpoint; the audit trail; what happens to records from unclaimed devices; the TimescaleDB container, the queue consumer, the IoT Core rule, the Docker image, Terraform and the dashboard.
 
 ## Open questions [Confirm]
 Questions 1, 5 and 7 concern this story and were confirmed by the tech lead on 27 Nov 2026. Questions 2, 3, 4 and 6 belong to later stories and stay open until those stories decide them.
