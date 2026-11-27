@@ -17,6 +17,8 @@ TABLES = {"scan_records", "readings", "gap_records"} | {
     "devices",
     "device_assignments",
     "audit_entries",
+    "level_configurations",
+    "strapping_points",
 }
 
 
@@ -60,6 +62,12 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "CONSTRAINT ck_gap_records_lost_at_least_one CHECK (lost >= 1)" in sql
     assert "FOREIGN KEY(tank_id) REFERENCES tanks (id)" in sql
     assert "ON device_assignments (device_id) WHERE valid_to_unix_s IS NULL" in sql
+    assert "ON level_configurations (tank_id) WHERE valid_to_unix_s IS NULL" in sql
+    assert "range_high_mm FLOAT NOT NULL" in sql
+    assert (
+        "FOREIGN KEY(configuration_id, previous_position, previous_height_mm, previous_volume_l)"
+        " REFERENCES strapping_points (configuration_id, position, height_mm, volume_l)" in sql
+    )
     # Rendered only: no Postgres server runs these until the TimescaleDB container story.
     assert "RAISE EXCEPTION 'audit_entries is append-only'" in sql
     assert "BEFORE UPDATE OR DELETE ON audit_entries FOR EACH ROW" in sql

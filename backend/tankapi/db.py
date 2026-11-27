@@ -23,6 +23,9 @@ taken on.
 ``audit_entries`` is the append-only audit trail (S-079): its migration's
 triggers refuse UPDATE and DELETE. ``tankapi.audit`` writes it (S-080).
 
+``level_configurations`` and ``strapping_points`` hold each tank's level
+configuration with its history (S-085). Nothing reads them yet (S-086).
+
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
 """
@@ -32,7 +35,9 @@ from __future__ import annotations
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     LargeBinary,
@@ -74,6 +79,8 @@ METHOD_MAX_CHARS = 8
 ROUTE_MAX_CHARS = 200
 # An assignment with no end is the device's current one; a device has at most one.
 OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
+# Likewise a tank has at most one current level configuration (S-085).
+OPEN_CONFIGURATION = OPEN_ASSIGNMENT
 
 
 class Base(DeclarativeBase):
@@ -266,6 +273,67 @@ class AssignmentRow(Base):
     tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
     valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
     valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class LevelConfigRow(Base):
+    """A tank's transducer range, full height and strapping table over
+    ``[valid_from_unix_s, valid_to_unix_s)``, for one calculation version (S-085)."""
+
+    __tablename__ = "level_configurations"
+    __table_args__ = (
+        UniqueConstraint("tank_id", "version", name="uq_level_configurations_tank_id"),
+        UniqueConstraint(
+            "tank_id", "valid_from_unix_s", name="uq_level_configurations_tank_id_valid_from"
+        ),
+        Index(
+            "ix_level_configurations_open",
+            "tank_id",
+            unique=True,
+            sqlite_where=OPEN_CONFIGURATION,
+            postgresql_where=OPEN_CONFIGURATION,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
+    version: Mapped[int] = mapped_column(Integer)
+    calculation_version: Mapped[int] = mapped_column(Integer)
+    valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
+    valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
+    range_low_mm: Mapped[float] = mapped_column(Float)
+    range_high_mm: Mapped[float] = mapped_column(Float)
+    max_height_mm: Mapped[float] = mapped_column(Float)
+    points: Mapped[list[StrappingPointRow]] = relationship(order_by="StrappingPointRow.position")
+
+
+class StrappingPointRow(Base):
+    """One ``(height_mm, volume_l)`` point. The ``previous_*`` columns repeat the point
+    before it, so the migration's checks can refuse one that does not rise (S-085)."""
+
+    __tablename__ = "strapping_points"
+    __table_args__ = (
+        UniqueConstraint("configuration_id", "position", "height_mm", "volume_l"),
+        ForeignKeyConstraint(
+            ["configuration_id", "previous_position", "previous_height_mm", "previous_volume_l"],
+            [
+                "strapping_points.configuration_id",
+                "strapping_points.position",
+                "strapping_points.height_mm",
+                "strapping_points.volume_l",
+            ],
+            name="fk_strapping_points_previous_point",
+        ),
+    )
+
+    configuration_id: Mapped[int] = mapped_column(
+        ForeignKey("level_configurations.id"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(Integer, primary_key=True)
+    height_mm: Mapped[float] = mapped_column(Float)
+    volume_l: Mapped[float] = mapped_column(Float)
+    previous_position: Mapped[int | None] = mapped_column(Integer)
+    previous_height_mm: Mapped[float | None] = mapped_column(Float)
+    previous_volume_l: Mapped[float | None] = mapped_column(Float)
 
 
 class AuditRow(Base):
