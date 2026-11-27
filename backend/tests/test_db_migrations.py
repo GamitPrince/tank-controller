@@ -19,6 +19,7 @@ TABLES = {"scan_records", "readings", "gap_records"} | {
     "audit_entries",
     "level_configurations",
     "strapping_points",
+    "alarm_thresholds",
 }
 
 
@@ -64,6 +65,11 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "ON device_assignments (device_id) WHERE valid_to_unix_s IS NULL" in sql
     assert "ON level_configurations (tank_id) WHERE valid_to_unix_s IS NULL" in sql
     assert "range_high_mm FLOAT NOT NULL" in sql
+    assert (
+        "ON alarm_thresholds (tank_id, measure, signal_id, direction, alarm_class)"
+        " WHERE valid_to_unix_s IS NULL" in sql
+    )
+    assert "CHECK (signal_id IN (1001, 1002, 2001, 2002, 2003, 2004, 2005, 2006))" in sql
     assert (
         "FOREIGN KEY(configuration_id, previous_position, previous_height_mm, previous_volume_l)"
         " REFERENCES strapping_points (configuration_id, position, height_mm, volume_l)" in sql
