@@ -44,7 +44,7 @@ Ubuntu:
 .venv/bin/python -m uvicorn tankapi.main:app --reload
 ```
 
-The token check (S-075) reads three environment settings, none of them written in the repository: `TANKAPI_AUTH_ISSUER` (the user pool's issuer URL), `TANKAPI_AUTH_CLIENT_ID` (its app client), and exactly one of `TANKAPI_AUTH_JWKS_FILE` (a local JWKS file) or `TANKAPI_AUTH_JWKS_URL` (the pool's JWKS, HTTPS only). Without them every `/v1` request gets 503; `/health` needs no token.
+The token check (S-075) reads three environment settings, none of them written in the repository: `TANKAPI_AUTH_ISSUER` (the user pool's issuer URL), `TANKAPI_AUTH_CLIENT_ID` (its app client), and exactly one of `TANKAPI_AUTH_JWKS_FILE` (a local JWKS file) or `TANKAPI_AUTH_JWKS_URL` (the pool's JWKS, HTTPS only). Without them every `/v1` request gets 503; `/health` needs no token. A valid token must also name exactly one role in `cognito:groups` (`operator`, `maintenance`, `admin` or `service`) and, except for `service`, a customer in `custom:customer_id` (S-076); otherwise the request gets 403.
 
 Then open <http://127.0.0.1:8000/health>, or <http://127.0.0.1:8000/docs> for the OpenAPI page. Uvicorn binds to `127.0.0.1` by default, so the app is not reachable from other machines.
 

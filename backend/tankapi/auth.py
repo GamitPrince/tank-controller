@@ -14,8 +14,15 @@ or the pool's JWKS URL) are environment settings, so no pool ID is written in
 the repository. With any of them missing every ``/v1`` request gets 503: the
 app fails closed rather than open.
 
-The caller's identity is the token's ``sub``. Role and customer are read in the
-next story; until per-customer scoping lands, any valid token reads any device.
+The caller is the token's ``sub``, with a role and a customer (S-076, ADR-0008
+decision 3). The role is the one ADR-0008 role named in ``cognito:groups``;
+other group names are ignored. The customer is ``custom:customer_id``, our
+``customers.id`` as decimal digits, and a service caller (our staff) is never
+tied to one. A token that passes but names no role, two roles, or no usable
+customer gets 403 with a fixed detail; the reason is logged, never the token.
+A handler takes the caller with ``Depends(require_caller)``; FastAPI runs the
+check once per request. Until per-customer scoping lands, any valid token reads
+any device, and service access is not yet audited.
 """
 
 from __future__ import annotations
@@ -23,7 +30,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Protocol
@@ -45,8 +54,14 @@ LEEWAY_S = 30
 # How long fetched pool keys are kept before the JWKS is read again.
 JWKS_LIFESPAN_S = 3600
 HTTPS_PREFIX = "https://"
+GROUPS_CLAIM = "cognito:groups"
+CUSTOMER_CLAIM = "custom:customer_id"
+# A positive decimal integer without padding; 18 digits always fit a BIGINT, and
+# [0-9] rather than \d refuses other scripts' digits.
+CUSTOMER_ID_PATTERN = re.compile(r"[1-9][0-9]{0,17}")
 
 HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
 HTTP_UNAVAILABLE = 503
 
 log = logging.getLogger(__name__)
@@ -93,11 +108,29 @@ class AuthSettings:
     keys: KeySource
 
 
+class Role(str, Enum):
+    """The four ADR-0008 roles, named as the user pool's groups are."""
+
+    OPERATOR = "operator"
+    MAINTENANCE = "maintenance"
+    ADMIN = "admin"
+    SERVICE = "service"
+
+
+ROLES_BY_GROUP = {role.value: role for role in Role}
+
+
+class CallerRefused(Exception):
+    """A valid token whose role or customer cannot be used; the message is the logged reason."""
+
+
 @dataclass(frozen=True)
 class Caller:
-    """Who sent a request whose token passed."""
+    """Who sent a request whose token passed: ``customer_id`` is ``None`` for service only."""
 
     subject: str
+    role: Role
+    customer_id: int | None
 
 
 def get_settings() -> AuthSettings | None:
@@ -129,7 +162,8 @@ def require_caller(
     settings: Annotated[AuthSettings | None, Depends(get_settings)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
 ) -> Caller:
-    """The caller of a ``/v1`` request; 401 without a valid token, 503 unconfigured."""
+    """The caller of a ``/v1`` request; 401 without a valid token, 403 without a usable
+    role or customer, 503 unconfigured."""
     if settings is None:
         log.error("token check is not configured; refusing every /v1 request")
         raise HTTPException(HTTP_UNAVAILABLE, "not available")
@@ -140,7 +174,35 @@ def require_caller(
     except jwt.PyJWTError as error:
         log.info("token refused: %s", error)
         raise _unauthenticated() from None
-    return Caller(subject=claims["sub"])
+    try:
+        return caller_from(claims)
+    except CallerRefused as error:
+        log.warning("caller %s refused: %s", claims["sub"], error)
+        raise HTTPException(HTTP_FORBIDDEN, "not allowed") from None
+
+
+def caller_from(claims: dict[str, Any]) -> Caller:
+    """The caller named by a verified token's claims; raises :class:`CallerRefused`."""
+    role = _role(claims.get(GROUPS_CLAIM))
+    # Service is our staff, never one customer's: any customer value is ignored.
+    customer_id = None if role is Role.SERVICE else _customer_id(claims.get(CUSTOMER_CLAIM))
+    return Caller(subject=claims["sub"], role=role, customer_id=customer_id)
+
+
+def _role(groups: Any) -> Role:
+    if not isinstance(groups, list):
+        raise CallerRefused("no group list")
+    named = [group for group in groups if isinstance(group, str)]
+    roles = {ROLES_BY_GROUP[group] for group in named if group in ROLES_BY_GROUP}
+    if len(roles) != 1:
+        raise CallerRefused(f"{len(roles)} roles in the groups, not one")
+    return roles.pop()
+
+
+def _customer_id(value: Any) -> int:
+    if not isinstance(value, str) or not CUSTOMER_ID_PATTERN.fullmatch(value):
+        raise CallerRefused("no customer, or not a positive decimal id")
+    return int(value)
 
 
 def _verified_claims(settings: AuthSettings, token: str) -> dict[str, Any]:

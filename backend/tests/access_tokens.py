@@ -1,4 +1,4 @@
-"""Cognito-shaped access tokens for the tests (S-075).
+"""Cognito-shaped access tokens for the tests (S-075), by default an operator of customer 7.
 
 Every key is generated at run time, so no private key or token is ever stored
 in the repository (ADR-0005 rule 9), and nothing is fetched from the network.
@@ -47,6 +47,8 @@ def claims(**changes: Any) -> dict[str, Any]:
         "sub": "user-1",
         "iat": now,
         "exp": now + LIFETIME_S,
+        "cognito:groups": ["operator"],
+        "custom:customer_id": "7",
     }
     return {name: value for name, value in (valid | changes).items() if value is not None}
 
