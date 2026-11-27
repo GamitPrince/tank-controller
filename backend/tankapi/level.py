@@ -72,9 +72,10 @@ class StrappingTable:
     """One version of one tank's transducer range and strapping table (S-035).
 
     ``range_low_mm`` is the level at 4 mA and ``range_high_mm`` the level at
-    20 mA. The points rise in both height and volume and end at or below
-    ``max_height_mm``, the tank's full height. A table that breaks any of this
-    is refused when it is made, so no calculation runs on it.
+    20 mA, normally 0 and ``max_height_mm`` (tech lead, 27 Nov 2026). The
+    points rise in both height and volume and end at or below ``max_height_mm``,
+    the tank's full height. A table that breaks any of this is refused when it
+    is made, so no calculation runs on it.
     """
 
     version: int

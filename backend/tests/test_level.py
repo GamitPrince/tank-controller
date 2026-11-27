@@ -35,9 +35,9 @@ POINTS = tuple(
         (2000, 3500),
     ]
 )
-# 0 mm at 4 mA and 3200 mm at 20 mA: 5 microamps per millimetre.
+# The usual span: 0 mm at 4 mA and the full height, 2000 mm, at 20 mA, so 8 microamps per mm.
 TABLE = StrappingTable(
-    version=3, range_low_mm=0, range_high_mm=3200, max_height_mm=2000, points=POINTS
+    version=3, range_low_mm=0, range_high_mm=2000, max_height_mm=2000, points=POINTS
 )
 
 
@@ -46,7 +46,7 @@ def radar(current_ua: int | bool | None, quality: Quality = Quality.GOOD) -> Rea
 
 
 def microamps(level_mm: float) -> int:
-    return round(4_000 + 5 * level_mm)
+    return round(4_000 + 8 * level_mm)
 
 
 def test_status_values_are_those_s035_resolved() -> None:
@@ -91,8 +91,8 @@ def test_the_transducer_range_low_end_offsets_the_level() -> None:
 @pytest.mark.parametrize(
     ("table", "current_ua"),
     [
-        (TABLE, microamps(2001)),  # above the tank's full height
-        (TABLE, 20_000),  # the transducer reaches past the tank
+        (replace(TABLE, range_high_mm=3200), 20_000),  # a span reaching past the tank
+        (replace(TABLE, points=POINTS[:-1]), microamps(1800)),  # above the highest point
         (replace(TABLE, points=POINTS[1:]), 4_000),  # below the lowest point
     ],
 )
