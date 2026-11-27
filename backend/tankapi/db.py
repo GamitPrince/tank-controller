@@ -24,7 +24,7 @@ taken on.
 triggers refuse UPDATE and DELETE. ``tankapi.audit`` writes it (S-080).
 
 ``level_configurations`` and ``strapping_points`` hold each tank's level
-configuration with its history (S-085). Nothing reads them yet (S-086).
+configuration with its history (S-085); ``tankapi.level_config`` reads them (S-086).
 
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.

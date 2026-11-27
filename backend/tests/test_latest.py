@@ -1,7 +1,9 @@
-"""The latest-values endpoint and its liveness flags, on a fixed clock (S-084, P1-19).
+"""The latest-values endpoint, its liveness flags (S-084, P1-19) and the tank level computed
+from the newest radar reading (S-086), on a fixed clock.
 
 Every name is made up. Example Co (7) has tank 71 and Sample Ltd (8) tank 81.
 DEV-A is on tank 71 from CLAIMED and is still there; DEV-B is known, never claimed.
+The strapping table is test_level_config's made-up one: 0 to 2000 mm, 5 microamps per mm.
 """
 
 from collections.abc import Callable, Iterator
@@ -12,11 +14,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select, update
 from sqlalchemy.orm import Session
+from test_level_config import POINTS, chained, config
 
 from tankapi import auth, liveness, session
 from tankapi.db import AssignmentRow, AuditRow, CustomerRow, DeviceRow, PlantRow, TankRow
 from tankapi.ingest import Accepted, ingest_message
-from tankapi.latest import LIVENESS_HELP
+from tankapi.latest import LEVEL_HELP, LIVENESS_HELP
+from tankapi.level import CALCULATION_VERSION
 from tankapi.main import app
 from tankapi.records import MAX_BATCH_RECORDS
 
@@ -26,6 +30,13 @@ CLAIMED = T - 100
 RADAR, PT100_1, PT100_2, PT100_3, UPTIME = 1001, 2001, 2002, 2003, 9001
 STAFF = {auth.GROUPS_CLAIM: ["service"], "sub": "staff-1"}
 NOT_FOUND = {"detail": "not found"}
+RADAR_625_MM = 4_000 + 5 * 625
+FIGURES = ("level_mm", "level_percent", "volume_l")
+READ = ("t", "quality", "age_ms", "liveness")
+NO_LEVEL = dict.fromkeys(("table_version", *READ, *FIGURES)) | {
+    "status": "no_reading",
+    "calculation_version": CALCULATION_VERSION,
+}
 
 
 def add(engine: Engine, *rows: object) -> None:
@@ -72,6 +83,17 @@ def serve(site: Engine) -> Iterator[Callable[[float], TestClient]]:
 
     yield client_at
     app.dependency_overrides.clear()
+
+
+def configure(engine: Engine, row_id: int = 1, tank_id: int = 71, version: int = 3, **rest):
+    """Tank ``tank_id``'s level configuration from CLAIMED (or ``start``) with the test table."""
+    start, end = rest.pop("start", CLAIMED), rest.pop("end", None)
+    add(engine, config(row_id, tank_id, version, start, end, **rest))
+    add(engine, *chained(row_id, POINTS))
+
+
+def level(data: dict, *keys: str) -> tuple:
+    return tuple(data["level"][key] for key in keys)
 
 
 def customer(customer_id: int) -> dict[str, str]:
@@ -133,6 +155,7 @@ def test_a_device_whose_clock_is_not_known_is_never_live(site, serve, headers) -
         "device": "time-unknown",
         "last_t": None,
         "values": [],
+        "level": NO_LEVEL,
     }
     ingest(site, scan(1, T, reading(RADAR)), scan(2, None, reading(RADAR, val=2)))
     data = body(serve(T + 1), headers)
@@ -186,3 +209,110 @@ def test_the_openapi_document_describes_the_liveness_field(serve) -> None:
     field = schemas["LatestValue"]["properties"]["liveness"]
     assert field["description"] == LIVENESS_HELP
     assert {"liveness", "quality", "age_ms"} <= set(schemas["LatestValue"]["required"])
+    assert schemas["Latest"]["properties"]["level"]["description"] == LEVEL_HELP
+    assert "level" in schemas["Latest"]["required"]
+    assert schemas["LevelState"]["enum"] == [
+        "ok",
+        "fault",
+        "out_of_range",
+        "stale",
+        "time_unknown",
+        "unconfigured",
+        "no_reading",
+    ]
+
+
+def test_a_configured_tank_gives_level_and_volume_from_the_newest_radar_reading(
+    site, serve
+) -> None:
+    configure(site)
+    ingest(
+        site,
+        scan(0, T - 1, reading(RADAR, val=4_000)),
+        scan(1, T, reading(RADAR, val=RADAR_625_MM)),
+    )
+    assert body(serve(T + 1))["level"] == {
+        "status": "ok",
+        "t": T,
+        "quality": "good",
+        "age_ms": 100,
+        "liveness": "live",
+        "level_mm": 625.0,
+        "level_percent": 31.25,
+        "volume_l": 760.0,
+        "table_version": 3,
+        "calculation_version": CALCULATION_VERSION,
+    }
+
+
+@pytest.mark.parametrize(
+    ("radar", "now", "status"),
+    [
+        (reading(RADAR, q=3), T, "fault"),
+        (reading(RADAR, q=4), T, "fault"),
+        (reading(RADAR, q=2, val=21_000), T, "out_of_range"),
+        (reading(RADAR, val=25_000), T, "out_of_range"),
+        (reading(RADAR, val=4_000 + 5 * 2_100), T, "out_of_range"),  # above the table
+        (reading(RADAR, val=RADAR_625_MM), T + 15.5, "stale"),
+        (reading(RADAR, q=1, val=RADAR_625_MM), T, "stale"),
+        (reading(RADAR, val=RADAR_625_MM), T - 3, "time_unknown"),  # ahead of the server
+    ],
+)
+def test_a_reading_that_gives_no_figures_says_why(site, serve, radar, now, status) -> None:
+    configure(site)
+    ingest(site, scan(0, T, radar))
+    data = body(serve(now))
+    assert level(data, "status", "table_version", *FIGURES) == (status, 3, None, None, None)
+
+
+@pytest.mark.parametrize(
+    ("configuration", "t"),
+    [(None, T), ({"calculation_version": CALCULATION_VERSION + 1}, T), ({"start": 0}, CLAIMED - 1)],
+    ids=["none", "another-calculation-version", "before-the-device-was-claimed"],
+)
+def test_an_unconfigured_tank_gives_no_figures(site, serve, configuration, t: int) -> None:
+    if configuration is not None:
+        configure(site, **configuration)
+    ingest(site, scan(0, t, reading(RADAR, val=RADAR_625_MM)))
+    data = body(serve(t))
+    assert level(data, "status", "table_version", "t", *FIGURES) == (
+        ("unconfigured", None, t, None, None, None)
+    )
+
+
+def test_no_radar_reading_gives_no_level(site, serve) -> None:
+    configure(site)
+    ingest(site, scan(0, T, reading(PT100_1)))
+    assert body(serve(T))["level"] == NO_LEVEL
+
+
+def test_each_reading_uses_the_configuration_in_force_at_its_time(site, serve) -> None:
+    configure(site, version=1, end=T)
+    configure(site, row_id=2, version=2, start=T, max_height_mm=2500.0)
+    ingest(site, scan(0, T - 1, reading(RADAR, val=RADAR_625_MM)))
+    client = serve(T + 1)
+    assert level(body(client), "table_version", "level_percent") == (1, 31.25)
+    ingest(site, scan(1, T, reading(RADAR, val=RADAR_625_MM)))
+    assert level(body(client), "table_version", "level_percent") == (2, 25.0)
+
+
+def test_a_moved_device_keeps_its_old_tank_for_an_old_reading(site, serve) -> None:
+    configure(site)
+    configure(site, row_id=2, tank_id=81, version=9)
+    ingest(site, scan(0, T - 1, reading(RADAR, val=RADAR_625_MM)))
+    with Session(site) as db:
+        db.execute(update(AssignmentRow).values(valid_to_unix_s=T))
+        db.add(AssignmentRow(device_id="DEV-A", tank_id=81, valid_from_unix_s=T))
+        db.commit()
+    client = serve(T)
+    assert level(body(client), "status", "table_version") == ("ok", 3)
+    assert latest(client, customer(EXAMPLE)).status_code == 404
+    assert body(client, customer(SAMPLE))["level"] == NO_LEVEL
+
+
+def test_overlapping_configurations_are_refused_rather_than_guessed(site, serve) -> None:
+    configure(site, version=1, end=T + 10)
+    add(site, config(2, 71, 2, T - 10, T + 10))
+    ingest(site, scan(0, T, reading(RADAR, val=RADAR_625_MM)))
+    response = latest(serve(T))
+    assert (response.status_code, response.json()) == (500, {"detail": "server error"})
