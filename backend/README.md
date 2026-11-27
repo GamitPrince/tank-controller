@@ -4,6 +4,8 @@ The Tank-AI cloud backend: a Python FastAPI app (ADR-0008, and ADR-0008 amendmen
 
 So far it is a skeleton (S-066) with one endpoint, `GET /health`, which returns `{"status": "ok", "version": "<app version>"}`. The version comes from `pyproject.toml`. Everything runs locally; no cloud account is used (ADR-0007's three gates).
 
+`tankapi.records.decode_message` (S-067) decodes one MQTT message, a CBOR batch of one to five records (`interfaces/records.cddl`), into typed scan and gap records, or raises `DecodeError` naming the record and the reason. Nothing is stored yet.
+
 ## Run the tests
 
 The same way CI does, from the repository root. It creates `backend/.venv`, installs the pinned `requirements-dev.txt`, runs the ruff lint and format checks, runs pytest, and writes `backend/coverage.xml`; the 80% line-coverage gate applies.

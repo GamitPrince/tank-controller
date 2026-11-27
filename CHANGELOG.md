@@ -70,6 +70,7 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 - A change goes out at once (S-065, NFR-01): when a logged scan differs from the one before in any contact's value or any reading's quality, the scan service kicks the uplink service, which polls straight away instead of finishing its 5 s wait. Analogue noise does not count, so steady readings still travel five to a frame.
 
 - The backend skeleton (S-066, ADR-0008): the root `backend/` folder holds a FastAPI app whose one endpoint, `GET /health`, reports the status and the app version, tested with pytest and held to the 80% gate by `backend/ci.sh` and a new `backend` CI job. It runs locally only; no database, ingest or cloud account yet.
+- The backend decodes the CBOR batch message (S-067, ADR-0004 decision 6): `tankapi.records.decode_message` turns one MQTT message into typed scan and gap records, oldest first, with every quality flag and age kept and no faulted value filled in. A malformed message is refused with the failing record and field named, and the whole message is checked before anything is returned. A test reads `interfaces/records.cddl` so the decoder's version and quality codes cannot drift from it. Nothing is stored yet.
 
 ### Notes
 
