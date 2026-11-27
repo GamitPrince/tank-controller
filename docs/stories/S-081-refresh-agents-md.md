@@ -37,8 +37,9 @@ None.
 Any code. The ADR files, the RSD and story cards. The "Story ID naming" section of `docs/stories/README.md`, which still says the next free ID is S-012 (historical; a separate cleanup if wanted). Any new decision or order of work.
 
 ## Open questions [Confirm]
+Both **confirmed by the tech lead, 27 Nov 2026**.
 1. **Local database on the development machine.** No Docker is installed; a PostgreSQL 18 install exists (`C:\Program Files\PostgreSQL\18\bin`) but no story has used it, and whether it runs or has TimescaleDB is unchecked. Recorded as found, not as a decision.
-2. **Approvals after a merge push.** A force-push dismisses an approval; whether a merge commit pushed after an approval keeps it has not been tried in this repository.
+2. **Approvals after a merge push.** A force-push dismisses an approval; whether a merge commit pushed after an approval keeps it has not been tried in this repository, so AGENTS.md says to merge `develop` in before asking for review.
 
 ## PR checklist notes
 Title `docs(docs): refresh AGENTS.md to the state after S-080 (S-081)`, branch `feature/S-081-refresh-agents-md`, `Closes #165`. No `safety` label. `interfaces/` is not changed.
