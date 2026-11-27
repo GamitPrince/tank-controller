@@ -21,7 +21,7 @@ closes one row and opens the next, so a reading still belongs to the tank it was
 taken on.
 
 ``audit_entries`` is the append-only audit trail (S-079): its migration's
-triggers refuse UPDATE and DELETE. Nothing writes it yet.
+triggers refuse UPDATE and DELETE. ``tankapi.audit`` writes it (S-080).
 
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.

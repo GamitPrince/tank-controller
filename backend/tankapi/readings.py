@@ -30,8 +30,8 @@ shown to nobody (S-073 ``[Confirm]`` 2). They see no untimed scan, and their
 gap is shown to them only when both its ends' times are known and lie in one
 stretch of their ownership ``[Confirm]``. A device they cannot see anywhere in
 the range answers exactly as an unknown device does, so IDs cannot be probed.
-Service access is not audited yet, so this endpoint runs locally only and must
-not be deployed before the audit-trail story (ADR-0008 decision 3).
+Every service request is recorded in the audit trail (S-080); the endpoint still
+runs locally only, until what S-080's spec lists as blocking deployment is done.
 """
 
 import logging
