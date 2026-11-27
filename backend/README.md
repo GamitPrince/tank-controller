@@ -4,9 +4,9 @@ The Tank-AI cloud backend: a Python FastAPI app (ADR-0008, and ADR-0008 amendmen
 
 So far it is a skeleton (S-066) with one endpoint, `GET /health`, which returns `{"status": "ok", "version": "<app version>"}`. The version comes from `pyproject.toml`. Everything runs locally; no cloud account is used (ADR-0007's three gates).
 
-`tankapi.records.decode_message` (S-067) decodes one MQTT message, a CBOR batch of one to five records (`interfaces/records.cddl`), into typed scan and gap records, or raises `DecodeError` naming the record and the reason. Nothing is stored yet.
+`tankapi.records.decode_message` (S-067) decodes one MQTT message, a CBOR batch of one to five records (`interfaces/records.cddl`), into typed scan and gap records, or raises `DecodeError` naming the record and the reason.
 
-`tankapi.db` maps scan records and their readings (S-068, `migrations/versions/0001_records.py`) and gap records (S-069, `0002_gap_records.py`) to their tables, with check constraints that keep a faulted reading without a value. Nothing writes to them yet. Create the tables in a local database from `backend/` (the URL is never written in the repository):
+`tankapi.db` maps scan records and their readings (S-068, `migrations/versions/0001_records.py`) and gap records (S-069, `0002_gap_records.py`) to their tables, with check constraints that keep a faulted reading without a value. `tankapi.store.store_message` (S-070) writes the records of one decoded message in one transaction, all or none, and skips a scan whose device, boot ID and sequence are already stored, or a gap identical to a stored one, so a message delivered twice stores nothing new. Nothing calls it yet; ingest is a later story. Create the tables in a local database from `backend/` (the URL is never written in the repository):
 
 ```bash
 TANKAPI_DATABASE_URL="sqlite:///$TEMP/tankapi.db" .venv/Scripts/python.exe -m alembic upgrade head
