@@ -1,4 +1,4 @@
-"""The customer > plant > tank > device tables (S-073).
+"""The customer > plant > tank > device tables (S-073) and resolving a device's owner (S-074).
 
 Every customer, plant and tank name here is made up.
 """
@@ -9,9 +9,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from tankapi.db import AssignmentRow, CustomerRow, DeviceRow, PlantRow, TankRow
+from tankapi.ownership import (
+    OverlappingAssignmentsError,
+    Owner,
+    Unowned,
+    owner_at,
+    owner_now,
+)
 
 CLAIMED = 1_763_683_200
 MOVED = CLAIMED + 86_400
+ON_TANK_1 = Owner(customer_id=1, plant_id=1, tank_id=1)
+ON_TANK_2 = Owner(customer_id=1, plant_id=1, tank_id=2)
 
 
 def assigned(device_id: str, tank_id: int, start: int, end: int | None = None) -> AssignmentRow:
@@ -107,3 +116,66 @@ def test_customer_with_plants_cannot_be_deleted(site: Engine) -> None:
     with Session(site) as session, pytest.raises(IntegrityError, match="FOREIGN KEY"):
         session.execute(delete(CustomerRow).where(CustomerRow.id == 1))
         session.commit()
+
+
+def now(engine: Engine, device_id: str) -> Owner | Unowned:
+    with Session(engine) as session:
+        return owner_now(session, device_id)
+
+
+def at(engine: Engine, device_id: str, unix_time_s: int) -> Owner | Unowned:
+    with Session(engine) as session:
+        return owner_at(session, device_id, unix_time_s)
+
+
+def test_claimed_device_resolves_to_its_tank_plant_and_customer(site: Engine) -> None:
+    add(site, assigned("DEV-2", 3, CLAIMED))
+    assert now(site, "DEV-1") == ON_TANK_1
+    assert now(site, "DEV-2") == Owner(customer_id=2, plant_id=2, tank_id=3)
+
+
+def test_assignment_holds_from_its_start_and_not_before(site: Engine) -> None:
+    assert at(site, "DEV-1", CLAIMED - 1) is Unowned.UNCLAIMED
+    assert at(site, "DEV-1", CLAIMED) == ON_TANK_1
+
+
+def test_moved_device_keeps_its_old_tank_for_the_time_it_was_there(site: Engine) -> None:
+    move(site, MOVED, to_tank=2)
+    assert now(site, "DEV-1") == ON_TANK_2
+    assert at(site, "DEV-1", CLAIMED) == ON_TANK_1
+    assert at(site, "DEV-1", MOVED - 1) == ON_TANK_1
+    # The old assignment's end is excluded: at the move the device is on the new tank.
+    assert at(site, "DEV-1", MOVED) == ON_TANK_2
+
+
+def test_released_device_is_unclaimed_from_its_release_on(site: Engine) -> None:
+    move(site, MOVED, to_tank=None)
+    assert now(site, "DEV-1") is Unowned.UNCLAIMED
+    assert at(site, "DEV-1", MOVED - 1) == ON_TANK_1
+    assert at(site, "DEV-1", MOVED) is Unowned.UNCLAIMED
+    assert at(site, "DEV-1", MOVED + 86_400) is Unowned.UNCLAIMED
+
+
+def test_known_but_never_claimed_device_is_unclaimed(site: Engine) -> None:
+    assert now(site, "DEV-2") is Unowned.UNCLAIMED
+    assert at(site, "DEV-2", CLAIMED) is Unowned.UNCLAIMED
+
+
+def test_device_missing_from_devices_is_unknown(site: Engine) -> None:
+    assert now(site, "DEV-9") is Unowned.UNKNOWN
+    assert at(site, "DEV-9", CLAIMED) is Unowned.UNKNOWN
+
+
+def test_overlapping_assignments_raise_instead_of_picking_a_customer(site: Engine) -> None:
+    # The schema refuses a second open row, not overlap among closed rows (S-073 [Confirm] 4).
+    add(site, assigned("DEV-2", 2, CLAIMED, CLAIMED + 10), assigned("DEV-2", 3, CLAIMED + 5, MOVED))
+    assert at(site, "DEV-2", CLAIMED + 4) == ON_TANK_2
+    with pytest.raises(OverlappingAssignmentsError, match="DEV-2"):
+        at(site, "DEV-2", CLAIMED + 5)
+
+
+@pytest.mark.parametrize("untimed", [None, True, float(CLAIMED)])
+def test_time_that_is_not_whole_unix_seconds_is_refused(site: Engine, untimed: object) -> None:
+    # An untimed scan has no t; it must not fall back to the current tank (S-073 [Confirm] 3).
+    with pytest.raises(TypeError, match="untimed"):
+        at(site, "DEV-1", untimed)
