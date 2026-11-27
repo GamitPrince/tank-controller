@@ -16,6 +16,8 @@ Each device publishes only to its own topic (ADR-0005), so a record whose
 ``dev`` is not the topic's device refuses the whole message: no record is ever
 stored under a device it did not come from.
 
+The new scans' advisory alarms are recorded in the same transaction (S-090).
+
 Phase 1: the controller is send-only, so ingest publishes nothing and answers
 no device. Refused messages are not kept; a dead-letter store is a later story.
 """
@@ -23,10 +25,14 @@ no device. Refused messages are not kept; a dead-letter store is a later story.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 
 from sqlalchemy.orm import Session
 
+from tankapi.alarm_events import record_alarm_events
+from tankapi.liveness import get_stale_rules, server_now
 from tankapi.records import DEVICE_ID_MAX_BYTES, DecodeError, Message, decode_message
 from tankapi.store import store_message
 
@@ -63,10 +69,13 @@ class Refused:
 IngestResult = Accepted | Refused
 
 
-def ingest_message(session: Session, topic: str, payload: bytes) -> IngestResult:
-    """Check, decode and store one MQTT message.
+def ingest_message(
+    session: Session, topic: str, payload: bytes, clock: Callable[[], float] = server_now
+) -> IngestResult:
+    """Check, decode and store one MQTT message, and record its scans' alarms (S-090).
 
     The session must have no transaction open (see :func:`store_message`).
+    ``clock`` is the server clock, which only spots a scan time ahead of it.
     """
     device_id = device_from_topic(topic)
     if device_id is None:
@@ -80,7 +89,8 @@ def ingest_message(session: Session, topic: str, payload: bytes) -> IngestResult
         index, other = foreign
         reason = f"record {index}: from device {other!r}, not the topic's device"
         return _refuse(device_id, reason, payload)
-    stored = store_message(session, records)
+    judge = partial(record_alarm_events, now_s=clock(), rules=get_stale_rules())
+    stored = store_message(session, records, then=judge)
     return Accepted(stored=stored.stored, skipped=stored.skipped)
 
 

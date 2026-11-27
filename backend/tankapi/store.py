@@ -21,7 +21,7 @@ between records; a gap stays a gap (S-040).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from sqlalchemy import ColumnElement, select
@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session
 
 from tankapi.db import GapRow, ScanRow
 from tankapi.records import GapRecord, Message, ScanRecord
+
+NewScans = Callable[[Session, Sequence[ScanRow]], object]
 
 
 @dataclass(frozen=True)
@@ -39,12 +41,17 @@ class StoreResult:
     skipped: int
 
 
-def store_message(session: Session, records: Sequence[Message]) -> StoreResult:
+def store_message(
+    session: Session, records: Sequence[Message], then: NewScans | None = None
+) -> StoreResult:
     """Write the records of one message, oldest first, skipping those already stored.
 
     The session must have no transaction open: this function begins one and
-    commits it, or rolls it back and re-raises if any write fails.
+    commits it, or rolls it back and re-raises if any write fails. ``then`` is
+    called in the same transaction with the scans that were new (S-090), so
+    what it writes is committed with them or not at all.
     """
+    new_scans: list[ScanRow] = []
     stored = 0
     with session.begin():
         for record in records:
@@ -52,8 +59,14 @@ def store_message(session: Session, records: Sequence[Message]) -> StoreResult:
             # same message is found as well as one stored earlier.
             if _already_stored(session, record):
                 continue
-            session.add(_row(record))
+            row = _row(record)
+            session.add(row)
+            if isinstance(row, ScanRow):
+                new_scans.append(row)
             stored += 1
+        if then is not None and new_scans:
+            session.flush()
+            then(session, new_scans)
     return StoreResult(stored=stored, skipped=len(records) - stored)
 
 
