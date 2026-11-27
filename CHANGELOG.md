@@ -89,3 +89,4 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
 - The merged ADRs' status lines were corrected to Accepted in S-051; ADR-0003, 0004, 0006, 0007, 0008 and 0009 now end with an Amendments section for the 26 Nov 2026 decisions, and ADR-0001 is revised and still Proposed (S-054).
+- `AGENTS.md` and the story status page refreshed to the state after S-080 (S-081): the firmware application and the backend chain S-066 to S-080 recorded as done, what still blocks any deployment listed, the 26 Nov 2026 order of work marked complete with no new order, and the process lessons since then (stacked PRs, `pr-policy` after merge, hex fixtures as `.txt`, the `dashboard` scope for backend PRs).
