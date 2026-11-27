@@ -16,3 +16,6 @@ uvicorn==0.54.0
 # writes and reads the records of interfaces/records.cddl, so firmware,
 # simulator and backend move together or not at all.
 cbor2==5.9.0
+# SQLAlchemy and Alembic hold the record tables and their migrations (S-068).
+sqlalchemy==2.1.9
+alembic==1.20.1
