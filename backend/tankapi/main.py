@@ -2,7 +2,8 @@
 
 Phase 1 is read-only: the backend receives and serves plant data and never
 sends a command to a device. It serves the health probe (S-066) and, under
-the ``/v1`` prefix, the read-only readings query (S-072). Every ``/v1`` route
+the ``/v1`` prefix, the read-only readings query (S-072) and latest values
+with their liveness (S-084). Every ``/v1`` route
 sits on one router that checks the caller's token first (S-075) and records
 every service caller's request in the audit trail (S-080); ``/health`` stays
 open.
@@ -15,6 +16,7 @@ from pydantic import BaseModel
 
 from tankapi.audit import noting_requests, write_entries
 from tankapi.auth import require_caller
+from tankapi.latest import router as latest_router
 from tankapi.readings import router as readings_router
 
 DISTRIBUTION_NAME = "tankapi"
@@ -38,6 +40,7 @@ v1 = APIRouter(
     dependencies=[Depends(require_caller), Depends(noting_requests(V1_PREFIX))],
 )
 v1.include_router(readings_router)
+v1.include_router(latest_router)
 
 app = FastAPI(title="Tank-AI backend", version=APP_VERSION)
 app.middleware("http")(write_entries)

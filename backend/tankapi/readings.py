@@ -128,7 +128,7 @@ def get_readings(
     """The caller's share of one signal's readings in ``[from, to)``, with its gaps."""
     if not start < end <= start + MAX_RANGE_S:
         raise HTTPException(HTTP_UNPROCESSABLE, f"need from < to <= from + {MAX_RANGE_S}")
-    windows = _windows(session, caller, device_id, start, end)
+    windows = caller_windows(session, caller, device_id, start, end)
     if windows == [] or not _device_known(session, device_id):
         raise HTTPException(HTTP_NOT_FOUND, NOT_FOUND)
     points = _points(session, device_id, signal, start, end, windows)
@@ -151,7 +151,7 @@ def get_readings(
     )
 
 
-def _windows(
+def caller_windows(
     session: Session, caller: Caller, device_id: str, start: int, end: int
 ) -> list[Window] | None:
     """``None`` for service, who sees everything; else when the caller's customer had the device."""
@@ -165,7 +165,7 @@ def _windows(
         raise HTTPException(HTTP_SERVER_ERROR, "server error") from None
 
 
-def _within(column: ColumnElement, window: Window) -> ColumnElement[bool]:
+def within_window(column: ColumnElement, window: Window) -> ColumnElement[bool]:
     # A NULL column compares as unknown, so a time not known is never within a window.
     after_start = column >= window.start
     return after_start if window.end is None else and_(after_start, column < window.end)
@@ -196,7 +196,7 @@ def _points(
     t = ScanRow.unix_time_s
     query = _signal_scans(device_id, signal_id).where(ScanRow.time_known, t >= start, t < end)
     if windows is not None:
-        query = query.where(or_(*(_within(t, window) for window in windows)))
+        query = query.where(or_(*(within_window(t, window) for window in windows)))
     query = query.order_by(t, ScanRow.boot_id, ScanRow.sequence).limit(MAX_POINTS + 1)
     return [_point(scan, reading) for scan, reading in session.execute(query)]
 
@@ -245,7 +245,9 @@ def _gaps(
     if windows is not None:
         # Both ends in one window: a gap across a move or a release would show the
         # boot and sequence numbers of a time that is not this customer's.
-        inside = (and_(_within(first, window), _within(last, window)) for window in windows)
+        inside = (
+            and_(within_window(first, window), within_window(last, window)) for window in windows
+        )
         query = query.where(or_(*inside))
     return [_gap(row.to_record()) for row in session.scalars(query.order_by(GapRow.id))]
 
