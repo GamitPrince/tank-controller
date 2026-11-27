@@ -71,6 +71,7 @@ Not on the story card. Repo infrastructure identified while working through Phas
 | S-066 | Backend skeleton in `backend/` | 2 | **Done** (S-066) | Spec: [`S-066-backend-skeleton.md`](S-066-backend-skeleton.md). FastAPI with `GET /health` only, `backend/ci.sh` and a `backend` CI job. Groundwork for P1-17; no database, ingest or cloud account |
 | S-067 | Decode the CBOR batch message in the backend | 2 | **Done** (S-067) | Spec: [`S-067-backend-batch-decode.md`](S-067-backend-batch-decode.md). `tankapi.records.decode_message`: typed scan and gap records from one MQTT message, malformed input refused with a reason. Groundwork for P1-17; nothing stored |
 | S-068 | Backend database schema and first migration | 2 | **Done** (S-068) | Spec: [`S-068-backend-db-schema.md`](S-068-backend-db-schema.md). SQLAlchemy models and Alembic revision 0001 for scan records and readings, with check constraints matching the decoder and a unique device, boot ID and sequence. Gap-record table split to S-069; nothing written to the database yet |
+| S-069 | Gap-record table in the backend database | 1 | **Done** (S-069) | Spec: [`S-069-backend-gap-table.md`](S-069-backend-gap-table.md). `GapRow` and Alembic revision 0002: `lost` and both lost-scan marks, with check constraints matching the decoder. Split out of S-068; nothing written to the database yet |
 
 Decided 26 Nov 2026 and queued as their own stories: removing `gateway/` (S-055), moving the link library to `shared/link-protocol/` (S-056), blocking cppcheck and caching the Zephyr tree (S-057).
 

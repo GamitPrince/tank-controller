@@ -10,7 +10,7 @@ from sqlalchemy import Engine, create_engine, inspect
 
 from tankapi.db import Base
 
-TABLES = {"scan_records", "readings"}
+TABLES = {"scan_records", "readings", "gap_records"}
 
 
 def table_names(url: str) -> set[str]:
@@ -50,6 +50,7 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "boot_id BYTEA NOT NULL" in sql and "id BIGSERIAL NOT NULL" in sql
     assert "CONSTRAINT uq_scan_records_device_id UNIQUE (device_id, boot_id, sequence)" in sql
     assert "CONSTRAINT ck_readings_value_matches_quality CHECK" in sql
+    assert "CONSTRAINT ck_gap_records_lost_at_least_one CHECK (lost >= 1)" in sql
 
 
 def test_url_comes_from_the_environment_and_is_required(
