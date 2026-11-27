@@ -30,9 +30,9 @@ def test_unknown_path_is_not_found(client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_openapi_documents_health_and_the_app_version(client: TestClient) -> None:
+def test_openapi_documents_only_get_paths_and_the_app_version(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
 
     assert schema["info"]["version"] == version("tankapi")
-    assert set(schema["paths"]) == {"/health"}
-    assert set(schema["paths"]["/health"]) == {"get"}
+    assert set(schema["paths"]) == {"/health", "/v1/devices/{device_id}/readings"}
+    assert all(set(methods) == {"get"} for methods in schema["paths"].values())

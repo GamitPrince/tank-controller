@@ -1,13 +1,16 @@
 """The FastAPI application.
 
 Phase 1 is read-only: the backend receives and serves plant data and never
-sends a command to a device. This skeleton has only the health probe.
+sends a command to a device. It serves the health probe (S-066) and, under
+the ``/v1`` prefix, the read-only readings query (S-072).
 """
 
 from importlib.metadata import version
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+
+from tankapi.readings import router as readings_router
 
 DISTRIBUTION_NAME = "tankapi"
 HEALTH_OK = "ok"
@@ -25,6 +28,7 @@ class Health(BaseModel):
 
 
 app = FastAPI(title="Tank-AI backend", version=APP_VERSION)
+app.include_router(readings_router)
 
 
 # An operational probe for the container platform, so it sits outside the
