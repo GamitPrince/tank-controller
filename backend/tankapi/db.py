@@ -1,4 +1,4 @@
-"""The database tables for decoded records (S-068, S-069).
+"""The database tables for decoded records (S-068, S-069) and device ownership (S-073).
 
 Three tables hold everything :func:`tankapi.records.decode_message` returns:
 ``scan_records`` (one row per scan), ``readings`` (one row per reading, in the
@@ -13,6 +13,13 @@ reading has exactly one, and ``unix_time_s`` is present exactly when
 ``time_known`` is true, in scans and in both marks of a gap. A gap record
 marks scans that will never arrive; nothing may interpolate across one (S-040).
 
+Ownership follows ADR-0007's customer > plant > tank > device (S-073). A device
+is keyed by the ID its records carry, but the record tables keep their own
+``device_id`` with no foreign key, so a record from an unregistered or
+unclaimed device is still stored. ``device_assignments`` keeps history: a move
+closes one row and opens the next, so a reading still belongs to the tank it was
+taken on.
+
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
 """
@@ -23,12 +30,14 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     ForeignKey,
+    Index,
     Integer,
     LargeBinary,
     MetaData,
     SmallInteger,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -52,6 +61,10 @@ NAMING_CONVENTION = {
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
 }
+
+NAME_MAX_CHARS = 100
+# An assignment with no end is the device's current one; a device has at most one.
+OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
 
 
 class Base(DeclarativeBase):
@@ -182,3 +195,65 @@ def _mark_columns(end: str, mark: LostScan) -> dict[str, object]:
         f"{end}_time_known": mark.time_known,
         f"{end}_unix_time_s": mark.unix_time_s,
     }
+
+
+class CustomerRow(Base):
+    """A customer: no user, query or device crosses from one to another (ADR-0007)."""
+
+    __tablename__ = "customers"
+    __table_args__ = (UniqueConstraint("name"),)
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    name: Mapped[str] = mapped_column(String(NAME_MAX_CHARS))
+
+
+class PlantRow(Base):
+    """A plant of one customer, its name unique within that customer."""
+
+    __tablename__ = "plants"
+    __table_args__ = (UniqueConstraint("customer_id", "name"),)
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
+    name: Mapped[str] = mapped_column(String(NAME_MAX_CHARS))
+
+
+class TankRow(Base):
+    """A tank in one plant, its name unique within that plant."""
+
+    __tablename__ = "tanks"
+    __table_args__ = (UniqueConstraint("plant_id", "name"),)
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    plant_id: Mapped[int] = mapped_column(ForeignKey("plants.id"))
+    name: Mapped[str] = mapped_column(String(NAME_MAX_CHARS))
+
+
+class DeviceRow(Base):
+    """A known device, by the ``device-id`` its records carry (``interfaces/records.cddl``)."""
+
+    __tablename__ = "devices"
+
+    device_id: Mapped[str] = mapped_column(String(DEVICE_ID_MAX_BYTES), primary_key=True)
+
+
+class AssignmentRow(Base):
+    """A device on a tank over ``[valid_from_unix_s, valid_to_unix_s)``; no end: still there."""
+
+    __tablename__ = "device_assignments"
+    __table_args__ = (
+        UniqueConstraint("device_id", "valid_from_unix_s"),
+        Index(
+            "ix_device_assignments_open",
+            "device_id",
+            unique=True,
+            sqlite_where=OPEN_ASSIGNMENT,
+            postgresql_where=OPEN_ASSIGNMENT,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    device_id: Mapped[str] = mapped_column(ForeignKey("devices.device_id"))
+    tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
+    valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
+    valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
