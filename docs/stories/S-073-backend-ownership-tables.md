@@ -46,13 +46,15 @@ No bench test is needed, because nothing touches hardware.
 **The read helper** that resolves a device ID to its tank, plant and customer, now or at a given time, or reports it unclaimed. It was written in this story and split out to the next story for PR size, with no migration needed. Also out of scope: users, roles and Cognito; per-customer filtering on the readings endpoint; the claim flow, QR codes and certificates; admin screens and any write endpoint; the audit trail; what happens to records from unclaimed devices; the TimescaleDB container, the queue consumer, the IoT Core rule, the Docker image, Terraform and the dashboard.
 
 ## Open questions [Confirm]
-1. **Assignments keep history** (recommended, taken). The alternative was a `tank_id` column on the device row: simpler, but a move would re-file every old reading under the new tank, which could belong to another customer.
+Questions 1, 5 and 7 concern this story and were confirmed by the tech lead on 27 Nov 2026. Questions 2, 3, 4 and 6 belong to later stories and stay open until those stories decide them.
+
+1. **Assignments keep history** (confirmed 27 Nov 2026). The alternative was a `tank_id` column on the device row: simpler, but a move would re-file every old reading under the new tank, which could belong to another customer.
 2. **Records from unclaimed devices** (for the login story). Ingest stores every record by device ID whatever its claim state, which is ADR-0005's "held". Recommended: show a reading only to the customer whose tank the device was on at the scan's `t`. Readings from before the claim (bench tests) or after a release then stay held and are shown to nobody. Still open: should a claim adopt earlier readings, and should records from a device missing from `devices` be refused or quarantined?
 3. **Scans with no known time** (`tk` false) cannot be placed in an assignment. Recommended: no tank shows them until a later story decides, as S-072 does with `untimed`.
 4. **Overlap among closed assignments** is not refused by the schema. Portable SQL cannot express it, and a Postgres exclusion constraint needs `btree_gist`. The claim and move story must close the old row and open the new one in one transaction. The read helper should raise if rows overlap anyway, rather than pick a customer.
-5. **Integer IDs** for customers, plants and tanks. They are not secrets: isolation comes from the scope check on every request (P1-20, "including by guessing IDs").
+5. **Integer IDs** for customers, plants and tanks (confirmed 27 Nov 2026). They are not secrets: isolation comes from the scope check on every request (P1-20, "including by guessing IDs").
 6. **SQLite foreign keys** are enforced only when a connection asks for it. The test engine asks, and Postgres always enforces them. The app's own engine (`session.py`) is unchanged.
-7. **Claim state is derived from assignments**, not stored as a flag, so the two cannot disagree. A device row holds only its ID. Provisioning details (certificate, label) belong to the provisioning story.
+7. **Claim state is derived from assignments** (confirmed 27 Nov 2026), not stored as a flag, so the two cannot disagree. A device row holds only its ID. Provisioning details (certificate, label) belong to the provisioning story.
 
 ## PR checklist notes
 Title `feat(dashboard): add the customer, plant, tank and device tables (S-073)`, branch `feature/S-073-backend-ownership-tables`, `Closes #149`. The `dashboard` scope follows S-066's [Confirm] 1. No `safety` label. `interfaces/` is not changed. About 370 changed lines, about half of them tests and docs; the read helper was split out to keep the PR near 300.
