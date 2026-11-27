@@ -15,7 +15,7 @@ Phase 1, read-only. The change only refuses requests: nothing is written and no 
 - **Confirmed by the tech lead on 27 Nov 2026:**
   1. The role comes from `cognito:groups`, which must hold **exactly one** of `operator`, `maintenance`, `admin` or `service`. No role, or two of them, gives 403. Any other group name is ignored.
   2. The customer is **`custom:customer_id`**: our `customers.id` as plain decimal digits in a string. Missing or malformed gives 403; a decimal string that is not a positive integer counts as malformed.
-  3. A **service** caller is never tied to a customer. A service token without the claim is allowed; any customer value on it is ignored and recorded as none. **Service access is not audited yet:** the audit trail is a later story, and until it lands nothing records what our staff read.
+  3. A **service** caller is never tied to a customer. A service token without the claim is allowed; any customer value on it is ignored and recorded as none. **Service access is audited by S-080:** every `/v1` request by a service caller is recorded in the append-only audit table.
 
 ## Files to create or change
 - `backend/tankapi/auth.py`: `Role`, `Caller.role` and `Caller.customer_id`, `caller_from`, and the 403 in `require_caller`.
