@@ -28,6 +28,8 @@ SETTINGS_VARIABLES = (
 )
 PAST = -(auth.LEEWAY_S + tokens.LIFETIME_S)
 FUTURE = auth.LEEWAY_S + tokens.LIFETIME_S
+GROUPS = auth.GROUPS_CLAIM
+CUSTOMER = auth.CUSTOMER_CLAIM
 
 
 def b64(data: bytes) -> str:
@@ -72,10 +74,75 @@ def assert_unauthenticated(response) -> None:
     assert response.json() == {"detail": "not authenticated"}
 
 
-def test_valid_access_token_names_its_caller() -> None:
-    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=tokens.token(sub="u-7"))
+def caller(**changes: object) -> auth.Caller:
+    credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=tokens.token(**changes))
+    return auth.require_caller(tokens.settings(), credentials)
 
-    assert auth.require_caller(tokens.settings(), credentials) == auth.Caller(subject="u-7")
+
+def test_valid_access_token_names_its_caller() -> None:
+    assert caller(sub="u-7") == auth.Caller("u-7", auth.Role.OPERATOR, 7)
+
+
+@pytest.mark.parametrize(
+    ("role", "customer_id"),
+    [
+        (auth.Role.OPERATOR, 7),
+        (auth.Role.MAINTENANCE, 7),
+        (auth.Role.ADMIN, 7),
+        pytest.param(auth.Role.SERVICE, None, id="service-customer-ignored"),
+    ],
+)
+def test_each_role_is_read_with_its_customer(role: auth.Role, customer_id: int | None) -> None:
+    assert caller(**{GROUPS: [role.value]}) == auth.Caller("user-1", role, customer_id)
+
+
+@pytest.mark.parametrize("customer", [None, "abc", "0"], ids=["none", "malformed", "zero"])
+def test_service_caller_needs_no_customer(customer: str | None) -> None:
+    assert caller(**{GROUPS: ["service"], CUSTOMER: customer}).customer_id is None
+
+
+def test_group_names_that_are_not_roles_are_ignored() -> None:
+    groups = ["plant-north", "operator", "us-east-1_pool_Google", 5]
+
+    assert caller(**{GROUPS: groups, CUSTOMER: "123456789012345678"}) == auth.Caller(
+        "user-1", auth.Role.OPERATOR, 123456789012345678
+    )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({GROUPS: None}, id="no-groups-claim"),
+        pytest.param({GROUPS: []}, id="empty-groups"),
+        pytest.param({GROUPS: "operator"}, id="groups-not-a-list"),
+        pytest.param({GROUPS: ["operator", "admin"]}, id="two-roles"),
+        pytest.param({GROUPS: ["supervisor"]}, id="unknown-group-only"),
+        pytest.param({CUSTOMER: None}, id="no-customer"),
+        pytest.param({CUSTOMER: ""}, id="empty-customer"),
+        pytest.param({CUSTOMER: "abc"}, id="non-digit-customer"),
+        pytest.param({CUSTOMER: "0"}, id="zero-customer"),
+        pytest.param({CUSTOMER: "-1"}, id="negative-customer"),
+        pytest.param({CUSTOMER: "07"}, id="zero-padded-customer"),
+        pytest.param({CUSTOMER: " 7"}, id="space-padded-customer"),
+        pytest.param({CUSTOMER: "7.0"}, id="float-like-customer"),
+        pytest.param({CUSTOMER: 7}, id="number-not-string-customer"),
+        pytest.param({CUSTOMER: "1" * 19}, id="too-long-customer"),
+        pytest.param({CUSTOMER: "٧"}, id="arabic-indic-digit-customer"),
+    ],
+)
+def test_valid_token_without_a_usable_role_or_customer_is_forbidden(
+    client: TestClient, caplog: pytest.LogCaptureFixture, changes: dict[str, object]
+) -> None:
+    caplog.set_level(logging.INFO, logger=auth.__name__)
+    token = tokens.token(**changes)
+
+    response = client.get(URL, params=PARAMS, headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "not allowed"}
+    assert "WWW-Authenticate" not in response.headers
+    assert "caller user-1 refused" in caplog.text
+    assert token not in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -94,6 +161,9 @@ def test_valid_access_token_names_its_caller() -> None:
         pytest.param(lambda: tokens.token(sub=None), id="no-subject"),
         pytest.param(lambda: tokens.token(sub=""), id="empty-subject"),
         pytest.param(lambda: tokens.token(key="stranger"), id="bad-signature"),
+        pytest.param(
+            lambda: tokens.token(key="stranger", **{GROUPS: None}), id="bad-signature-and-no-role"
+        ),
         pytest.param(lambda: tokens.token(kid="other-key"), id="unknown-kid"),
         pytest.param(lambda: hand_made("none", b""), id="alg-none"),
         pytest.param(lambda: hand_made("HS256", public_pem()), id="hs256-with-public-key"),
