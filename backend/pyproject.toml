@@ -1,0 +1,38 @@
+[project]
+name = "tankapi"
+version = "0.0.0"
+description = "Tank-AI Phase 1 cloud backend (ADR-0008)"
+requires-python = ">=3.10"
+# Runtime dependencies. Upper bounds keep a major release from arriving
+# unannounced; requirements-dev.txt pins the exact versions CI uses.
+dependencies = [
+  "fastapi>=0.165,<1",  # the REST API (ADR-0008 decision 1)
+  "uvicorn>=0.54,<1",   # the ASGI server that runs it
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["tankapi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["tankapi"]
+
+[tool.coverage.report]
+# Only third-party and generated code is excluded. Our own code all counts.
+exclude_also = ["if TYPE_CHECKING:"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

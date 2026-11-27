@@ -1,0 +1,14 @@
+# Pinned so CI and developer machines agree. Bump deliberately, in its own commit.
+# pytest, pytest-cov and ruff match simulator/requirements-dev.txt; keep them
+# in step. httpx2 is what FastAPI's TestClient uses, so it is test-only.
+# Starlette 1.10 deprecates plain httpx for its TestClient (and caps it below
+# 0.29); pytest turns that warning into an error, so httpx2 it is (S-066).
+pytest==9.2.0
+pytest-cov==7.1.0
+ruff==0.17.6
+httpx2==2.16.2
+
+# Runtime dependencies, pinned here as well so a CI run is reproducible. The
+# ranges that a consumer of the package gets are in pyproject.toml.
+fastapi==0.165.0
+uvicorn==0.54.0

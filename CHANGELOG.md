@@ -69,6 +69,8 @@ All notable changes to this project are recorded here. Format follows Keep a Cha
 
 - A change goes out at once (S-065, NFR-01): when a logged scan differs from the one before in any contact's value or any reading's quality, the scan service kicks the uplink service, which polls straight away instead of finishing its 5 s wait. Analogue noise does not count, so steady readings still travel five to a frame.
 
+- The backend skeleton (S-066, ADR-0008): the root `backend/` folder holds a FastAPI app whose one endpoint, `GET /health`, reports the status and the app version, tested with pytest and held to the 80% gate by `backend/ci.sh` and a new `backend` CI job. It runs locally only; no database, ingest or cloud account yet.
+
 ### Notes
 
 - ADR-0001 (public repository) is still Proposed. ADR-0002 (hardware) is not yet written and waits for the EE.
