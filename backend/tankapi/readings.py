@@ -20,9 +20,11 @@ is returned when it overlaps the range or may overlap it: an end whose time
 was not known is treated as open. A gap with neither time known is counted in
 ``untimed`` instead.
 
-``[Confirm]`` No login yet: this endpoint is unauthenticated and runs locally
-only. It must not be deployed before the login and per-customer access story
-(ADR-0008: the backend checks every request).
+The router has no prefix of its own: ``tankapi.main`` mounts it under ``/v1``,
+behind the token check (S-075). ``[Confirm]`` There is no per-customer scoping
+yet, so any valid token reads any device: this endpoint runs locally only and
+must not be deployed before the scoping story (ADR-0008: the backend checks
+every request).
 """
 
 from enum import Enum
@@ -94,7 +96,7 @@ class Readings(BaseModel):
     untimed: Untimed
 
 
-router = APIRouter(prefix="/v1")
+router = APIRouter()
 SessionDependency = Annotated[Session, Depends(get_session)]
 
 

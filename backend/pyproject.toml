@@ -11,6 +11,9 @@ dependencies = [
   "cbor2>=5.6,<6",      # CBOR records (ADR-0004 decision 6), the simulator's range
   "sqlalchemy>=2.1,<3", # the database tables (S-068)
   "alembic>=1.20,<2",   # their migrations, under migrations/ (AGENTS.md section 6)
+  # The token check (S-075). The floors are the releases checked against GitHub's advisories.
+  "PyJWT[crypto]>=2.15.1,<3",
+  "cryptography>=50.0.2,<51",
 ]
 
 [build-system]

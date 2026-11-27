@@ -19,3 +19,8 @@ cbor2==5.9.0
 # SQLAlchemy and Alembic hold the record tables and their migrations (S-068).
 sqlalchemy==2.1.9
 alembic==1.20.1
+# PyJWT checks the Cognito access token's RS256 signature with cryptography
+# (S-075). Both were the latest releases on 27 Nov 2026, and no GitHub
+# advisory covers either version.
+PyJWT[crypto]==2.15.1
+cryptography==50.0.2
