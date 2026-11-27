@@ -26,6 +26,9 @@ triggers refuse UPDATE and DELETE. ``tankapi.audit`` writes it (S-080).
 ``level_configurations`` and ``strapping_points`` hold each tank's level
 configuration with its history (S-085); ``tankapi.level_config`` reads them (S-086).
 
+``alarm_thresholds`` holds each tank's advisory alarm limits with their history
+(S-087). Nothing reads them yet.
+
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
 """
@@ -72,6 +75,9 @@ NAMING_CONVENTION = {
 }
 
 NAME_MAX_CHARS = 100
+MEASURE_MAX_CHARS = 16
+DIRECTION_MAX_CHARS = 8
+CLASS_MAX_CHARS = 16
 # A Cognito sub is a 36-character UUID; a route template is a path.
 SUBJECT_MAX_CHARS = 128
 ROLE_MAX_CHARS = 16
@@ -81,6 +87,9 @@ ROUTE_MAX_CHARS = 200
 OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
 # Likewise a tank has at most one current level configuration (S-085).
 OPEN_CONFIGURATION = OPEN_ASSIGNMENT
+# And one current threshold per measure, signal, direction and class (S-087).
+OPEN_THRESHOLD = OPEN_ASSIGNMENT
+THRESHOLD_KEY = ("tank_id", "measure", "signal_id", "direction", "alarm_class")
 
 
 class Base(DeclarativeBase):
@@ -334,6 +343,34 @@ class StrappingPointRow(Base):
     previous_position: Mapped[int | None] = mapped_column(Integer)
     previous_height_mm: Mapped[float | None] = mapped_column(Float)
     previous_volume_l: Mapped[float | None] = mapped_column(Float)
+
+
+class AlarmThresholdRow(Base):
+    """One high or low limit of one class on a tank's signal or level %, with a deadband,
+    over ``[valid_from_unix_s, valid_to_unix_s)``; numbers in the measure's stored unit (S-087)."""
+
+    __tablename__ = "alarm_thresholds"
+    __table_args__ = (
+        UniqueConstraint(*THRESHOLD_KEY, "valid_from_unix_s"),
+        Index(
+            "ix_alarm_thresholds_open",
+            *THRESHOLD_KEY,
+            unique=True,
+            sqlite_where=OPEN_THRESHOLD,
+            postgresql_where=OPEN_THRESHOLD,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
+    measure: Mapped[str] = mapped_column(String(MEASURE_MAX_CHARS))
+    signal_id: Mapped[int] = mapped_column(BigInteger)
+    direction: Mapped[str] = mapped_column(String(DIRECTION_MAX_CHARS))
+    alarm_class: Mapped[str] = mapped_column(String(CLASS_MAX_CHARS))
+    limit_value: Mapped[int] = mapped_column(BigInteger)
+    deadband: Mapped[int] = mapped_column(BigInteger)
+    valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
+    valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class AuditRow(Base):
