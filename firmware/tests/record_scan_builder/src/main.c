@@ -227,3 +227,40 @@ ZTEST(scan_builder, test_bad_arguments_are_refused)
 	zassert_ok(tank_scan_build(&bad, &bt, SL, SEQ, T0, &scan), "exactly the maximum");
 	zassert_equal(scan.count, TANK_SCAN_MAX_READINGS);
 }
+
+ZTEST(scan_builder, test_only_contacts_and_qualities_make_a_prompt_change)
+{
+	struct tank_scan_sources src = sources(1U, 1U, 2U);
+	static struct tank_scan prev;
+	static struct tank_scan next;
+
+	feed_loop(&levels[0], 12.0f, false, T0);
+	feed_temp(&temps[0], R_85_DEGC, false, T0);
+	confirm_contact(&contacts[0], true, T0);
+	confirm_contact(&contacts[1], true, T0);
+	zassert_ok(tank_scan_build(&src, &bt, SL, SEQ, T0, &prev));
+	zassert_false(tank_scan_prompt_change(&prev, &prev, src.contact_count));
+
+	next = prev;
+	next.r[0].val += 5;
+	next.r[1].val -= 3;
+	zassert_false(tank_scan_prompt_change(&prev, &next, src.contact_count), "analogue noise");
+	next = prev;
+	next.r[3].val = 1;
+	zassert_true(tank_scan_prompt_change(&prev, &next, src.contact_count), "a contact moved");
+	next = prev;
+	next.r[0].q = TANK_QUALITY_OUT_OF_RANGE;
+	zassert_true(tank_scan_prompt_change(&prev, &next, src.contact_count), "a quality moved");
+	next = prev;
+	next.r[1].has_val = false;
+	zassert_true(tank_scan_prompt_change(&prev, &next, src.contact_count));
+	next = prev;
+	next.count--;
+	zassert_true(tank_scan_prompt_change(&prev, &next, src.contact_count), "other count");
+	next = prev;
+	next.r[2].id++;
+	zassert_true(tank_scan_prompt_change(&prev, &next, src.contact_count), "other id");
+	zassert_true(tank_scan_prompt_change(&prev, &prev, prev.count + 1U));
+	zassert_false(tank_scan_prompt_change(NULL, &prev, src.contact_count));
+	zassert_false(tank_scan_prompt_change(&prev, NULL, src.contact_count));
+}

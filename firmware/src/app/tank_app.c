@@ -98,10 +98,22 @@ static int init_inputs(struct tank_app *app)
 	return err;
 }
 
+/* The scan service's on_change: send a prompt change now (S-065, NFR-01). */
+static void send_now(void *ctx)
+{
+	/* Before the uplink is up, or without one, there is nothing to wake. */
+	(void)tank_uplink_service_kick(ctx);
+}
+
 static int start_scanning(struct tank_app *app, const struct tank_app_config *cfg)
 {
-	const struct tank_scan_service_inputs in = {
-	    .sources = &app->sources, .bt = &app->bt, .lock = &app->inputs_lock, .log = &app->log};
+	const struct tank_scan_service_inputs in = {.sources = &app->sources,
+						    .bt = &app->bt,
+						    .lock = &app->inputs_lock,
+						    .log = &app->log,
+						    .on_change =
+							(cfg->esp32_uart != NULL) ? send_now : NULL,
+						    .change_ctx = &app->forwarding};
 	const struct tank_scan_service_config scan_cfg = {.period_ms = cfg->scan_period_ms,
 							  .sl = TANK_SIGNAL_LIST_VERSION};
 

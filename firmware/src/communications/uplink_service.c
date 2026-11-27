@@ -82,6 +82,15 @@ int tank_uplink_service_stop(struct tank_uplink_service *svc)
 	return 0;
 }
 
+int tank_uplink_service_kick(struct tank_uplink_service *svc)
+{
+	if ((svc == NULL) || (svc->tid == NULL)) {
+		return -EINVAL;
+	}
+	k_sem_give(&svc->wake);
+	return 0;
+}
+
 const struct tank_uplink_service_stats *
 tank_uplink_service_stats(const struct tank_uplink_service *svc)
 {

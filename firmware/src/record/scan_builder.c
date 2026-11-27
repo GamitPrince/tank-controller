@@ -144,3 +144,29 @@ int tank_scan_build(const struct tank_scan_sources *src, const struct tank_boot_
 	}
 	return err;
 }
+
+static bool reading_changed(const struct tank_scan_reading *a, const struct tank_scan_reading *b,
+			    bool is_contact)
+{
+	return (a->id != b->id) || (a->q != b->q) || (a->has_val != b->has_val) ||
+	       (is_contact && (a->val != b->val));
+}
+
+bool tank_scan_prompt_change(const struct tank_scan *prev, const struct tank_scan *s,
+			     size_t contact_count)
+{
+	if ((prev == NULL) || (s == NULL)) {
+		return false;
+	}
+	if ((prev->count != s->count) || (contact_count > s->count)) {
+		return true;
+	}
+	const size_t first_contact = s->count - contact_count;
+
+	for (size_t i = 0U; i < s->count; i++) {
+		if (reading_changed(&prev->r[i], &s->r[i], i >= first_contact)) {
+			return true;
+		}
+	}
+	return false;
+}

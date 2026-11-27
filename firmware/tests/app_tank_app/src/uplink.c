@@ -22,6 +22,9 @@
 #define RUN_MS 400U
 #define IDLE_MS 20U
 #define RETRY_MS 100U
+/* Far longer than the test runs, so only a prompt send can deliver. */
+#define LONG_IDLE_MS 10000U
+#define SETTLE_MS 150U
 #define AGREEMENT_MS 1000U
 #define DEV_ID "0123456789abcdef0123456789abcdef"
 
@@ -157,4 +160,24 @@ ZTEST(app_uplink, test_device_id_is_the_factory_id_in_hex)
 	zassert_ok(tank_device_id_read(out, sizeof(out)));
 	zassert_true(strlen(out) >= 2U && strlen(out) <= 2U * TANK_DEVICE_ID_UID_MAX);
 	zassert_equal(strspn(out, "0123456789abcdef"), strlen(out), "not lowercase hex: %s", out);
+}
+
+ZTEST(app_uplink, test_a_quality_change_is_sent_at_once)
+{
+	struct tank_app_config cfg = config();
+	const struct tank_ad4111_reading good = {.current_ma = 12.0f, .channel = 1U};
+	uint32_t before;
+
+	cfg.uplink.idle_ms = LONG_IDLE_MS;
+	uart_emul_callback_tx_data_ready_set(uart_dev, esp_hears, NULL);
+	zassert_ok(tank_app_start(&app, &cfg));
+	k_msleep(SETTLE_MS);
+	before = esp.records;
+
+	zassert_ok(k_mutex_lock(&app.inputs_lock, K_FOREVER));
+	zassert_ok(tank_loop_level_update(&app.levels[0], &good, k_uptime_get_32()));
+	zassert_ok(k_mutex_unlock(&app.inputs_lock));
+	k_msleep(3U * PERIOD_MS);
+	zassert_true(esp.records > before, "the change waited for the long idle poll");
+	zassert_true(tank_scan_service_stats(&app.scan)->changes >= 1U);
 }
