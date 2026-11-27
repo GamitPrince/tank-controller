@@ -45,5 +45,12 @@ Split into later stories to stay under about 300 changed lines: the strapping-ta
 - `CALCULATION_VERSION` is a whole number raised by hand whenever the method changes, not a git commit hash.
 - The radar's span runs from 0 mm at 4 mA to the tank's full height at 20 mA, so a table normally has `range_low_mm` 0 and `range_high_mm` equal to `max_height_mm`. The full height and the strapping table vary from customer to customer: each comes from that customer's own calibration sheet at commissioning, goes into the cloud table, and is never committed here. The two range fields stay (S-035: per-tank configuration), so a radar spanned differently still fits.
 
+## Radar settings this calculation relies on (commissioning)
+Checked on 27 Nov 2026 against the pilot radar's operating instructions (its make and model are kept out of this public repository) and NAMUR NE43, which the radar follows. Set at each site's commissioning:
+- **Fault reaction 3.6 mA or below, or 21 mA or above, never "last valid measured value".** That option holds the last level when the radar fails, so a failed radar would read as a live, good level (AGENTS.md section 7).
+- **Current range 3.8 to 20.5 mA** (the radar's default), so a level past either end reads `out_of_range` instead of being held at 4 or 20 mA.
+- **Rising output** (4 mA = 0 %, 20 mA = 100 %), with 0 % adjusted to 0 mm and 100 % to the tank's full height, and **no linearisation in the radar**: the current must follow the level height, because the backend turns height into volume.
+- At switch-on the radar outputs 3.6 mA or less (up to 10 mA for its first 5 ms), which the firmware reads as `fault`, so no figure is given.
+
 ## Open questions
-1. `[Confirm]` The radar transmitter's own fail-low and fail-high currents, from its datasheet or settings; its make and model are not in this repository. NAMUR NE43 itself was checked on 27 Nov 2026: failure at 3.6 mA or below and 21 mA or above, measurement from 3.8 to 20.5 mA. The firmware (S-034) faults only below 3.6 and above 21.0 mA, so exactly 3.6 or 21.0 mA reads `out-of-range`, not `fault`. The backend gives no figure either way; the boundary is the firmware's to settle once the datasheet is known.
+None for this story. Follow-up for the firmware (S-034): the radar and NE43 signal a fault at **3.6 mA or below and 21 mA or above**, but the firmware faults only below 3.6 and above 21.0 mA, so a fault output of exactly 3.6 mA, read with a little noise, can flip between `fault` and `out-of-range`. The backend gives no figure either way.
