@@ -35,9 +35,9 @@ None. `interfaces/` and the OpenAPI document are unchanged.
 pytest with made-up values and a fixed clock, locally on Windows and in GitHub CI (`backend` job, 80% line-coverage gate). Cases: just under, at and just over each limit, high and low; the deadband's clearing point and one unit past it; no deadband; a hovering value; fault, unconfigured, stale-quality, stale, untimed and missing readings, raised and not; out-of-range readings; level % in hundredths with every S-086 status, and through `tank_level` on a stored configuration (85 % raised, 84.9 % normal, stale, out of range); every refusal; the signal list check; no MQTT or AWS client imported.
 
 ## Out of scope
-Reading the thresholds in force at a time and recording raised and cleared alarms from stored readings, with the scan time (S-089); the read endpoint (S-090); acknowledgement (S-091); an on-delay; notifications; the dashboard; alarms on staleness itself; rate-of-change, predictive or Phase 2 alarms; anything that commands a device.
+Reading the thresholds in force at a time and recording raised and cleared alarms from stored readings, with the scan time (S-089, S-090); the read endpoint (S-091); acknowledgement (S-092); an on-delay; notifications; the dashboard; alarms on staleness itself; rate-of-change, predictive or Phase 2 alarms; anything that commands a device.
 
 ## Open questions
 1. `[Confirm]` An out-of-range reading is judged as measured (S-017). Level % gives no figure out of range (S-082), so an overfilled tank's radar past 20 mA raises only a raw threshold on signal 1001; the pilot tank should have one.
-2. `[Confirm]` The liveness is the caller's: S-089 decides how a backlog replayed after an outage is judged, since S-083 against the server clock would call every replayed reading stale.
+2. `[Confirm]` The liveness is the caller's: S-090 decides how a backlog replayed after an outage is judged, since S-083 against the server clock would call every replayed reading stale.
 3. `[Confirm]` A reading at exactly the limit is reached (`>=`, `<=`), and one exactly at the clearing point stays raised.

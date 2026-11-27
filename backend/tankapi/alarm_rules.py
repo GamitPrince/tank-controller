@@ -14,7 +14,7 @@ A high threshold is reached at ``value >= limit``. Once reached it stays reached
 while ``value >= limit - deadband``, so a value hovering at the limit does not
 flap, and clears below that; a low threshold is the mirror image. Whether it was
 reached before (``active``) comes from the caller, which keeps the alarm's
-history (S-089).
+history (S-089, S-090).
 
 A value that cannot be trusted gives ``cannot_evaluate`` with the reason: a
 fault, an unconfigured channel, a stale or untimed reading, no reading, or a

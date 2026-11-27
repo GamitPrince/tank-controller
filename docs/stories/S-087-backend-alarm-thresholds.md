@@ -4,7 +4,7 @@
 - Epic: E4, the backend half of P1-18, part 1 of 5. Points: 1. Priority: Must. Component: backend (`backend/`). Review flag: one collaborator other than the author. Not a safety path; `.github/` and `interfaces/` are not touched; one new migration; no new dependency. Chosen by the tech lead on 27 Nov 2026. Builds on S-073 (the tanks) and follows S-085's pattern. Part 2, S-088, judges a value against a threshold.
 
 ## Goal
-Store each tank's advisory alarm thresholds with their history, so later stories can judge stored readings and level % against them (S-088), record raised and cleared alarms (S-089), show them (S-090) and let people acknowledge them (S-091).
+Store each tank's advisory alarm thresholds with their history, so later stories can judge stored readings and level % against them (S-088), store and record raised and cleared alarms (S-089, S-090), show them (S-091) and let people acknowledge them (S-092).
 
 ## Phase check
 Phase 1, read-only for plant data. One new table; no endpoint changes. **These are advisory alarms for people, never actions:** nothing is sent to a device and nothing touches the hardwired safety chain (AGENTS.md section 1). The device's own alarm and trip contacts (digital channels 1, 2 and 10 to 15) stay separate signals: the table refuses a threshold on them, so they are never relabelled as these alarms. No analytics, trend or predictive alarm (P1-18). No AWS resource, notification or paid service (ADR-0007's three gates still hold).
@@ -34,7 +34,7 @@ None. `interfaces/` and the OpenAPI document are unchanged.
 pytest on SQLite with made-up tanks and thresholds, locally on Windows and in GitHub CI (`backend` job, 80% line-coverage gate). Cases: a threshold read back as stored; a change closing one row and opening the next; several open thresholds of different classes, directions, measures and tanks; every refusal above, each by the constraint that should refuse it; the migration up and down twice and rendered for Postgres. No Postgres server runs these checks yet (the TimescaleDB container story).
 
 ## Out of scope
-Judging a value against a threshold (S-088, split off for size); reading the thresholds in force at a time and recording raised and cleared alarms (S-089); the read endpoint (S-090); acknowledgement (S-091); retention of alarm history and the daily S3 Object Lock copy. An admin endpoint or screen to set thresholds: **that later write must be audited** like any configuration change (ADR-0008). Notifications; the dashboard; alarms on staleness itself or "no data from device" (ADR-0009); rate-of-change, predictive or Phase 2 alarms; anything that commands a device; the TimescaleDB container, Cognito, Docker and Terraform.
+Judging a value against a threshold (S-088, split off for size); reading the thresholds in force at a time and recording raised and cleared alarms (S-089, S-090); the read endpoint (S-091); acknowledgement (S-092); retention of alarm history and the daily S3 Object Lock copy. An admin endpoint or screen to set thresholds: **that later write must be audited** like any configuration change (ADR-0008). Notifications; the dashboard; alarms on staleness itself or "no data from device" (ADR-0009); rate-of-change, predictive or Phase 2 alarms; anything that commands a device; the TimescaleDB container, Cognito, Docker and Terraform.
 
 ## Open questions
 1. `[Confirm]` Level % thresholds are stored in hundredths of a percent, so every limit is an exact whole number in one column type, as the raw signals are.
