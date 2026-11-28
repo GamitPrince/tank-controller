@@ -12,9 +12,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
-from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T
+from test_alarm_history import EXAMPLE, SAMPLE, T
 from test_level_config import POINTS, RANGE, at, chained, config
-from test_threshold_edit import ADMIN, add, changes, person, seed
+from test_threshold_edit import add, admin, changes, person, seed, staff
 
 from tankapi import auth, level_config_edit, session
 from tankapi.db import AuditRow, CustomerRow, LevelConfigRow, PlantRow, TankRow
@@ -51,7 +51,8 @@ def client(site: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient
     app.dependency_overrides.clear()
 
 
-def put(client: TestClient, tank_id: object = 71, headers: dict = ADMIN, **changes_):
+def put(client: TestClient, tank_id: object = 71, headers: dict | None = None, **changes_):
+    headers = admin() if headers is None else headers
     return client.put(ROUTE.format(tank_id=tank_id), json=BODY | changes_, headers=headers)
 
 
@@ -95,7 +96,7 @@ def test_an_old_reading_keeps_the_configuration_of_its_time(site, client) -> Non
 
 
 def test_a_first_configuration_has_no_before_and_version_one(site, client) -> None:
-    response = put(client, tank_id=81, headers=STAFF)
+    response = put(client, tank_id=81, headers=staff())
     assert response.json()["version"] == 1 and response.json()["replaced"] is None
     [change] = changes(site)
     assert (change.role, change.tank_id, change.before, change.after_row_id) == (
@@ -116,9 +117,9 @@ def test_operator_and_maintenance_are_refused(site, client, role) -> None:
     assert len(configs(site)) == 1 and changes(site) == []
 
 
-@pytest.mark.parametrize(("tank", "headers"), [(81, ADMIN), (99, ADMIN), (99, STAFF)])
+@pytest.mark.parametrize(("tank", "headers"), [(81, "admin"), (99, "admin"), (99, "service")])
 def test_another_customers_tank_answers_as_an_unknown_one(site, client, tank, headers) -> None:
-    response = put(client, tank_id=tank, headers=headers)
+    response = put(client, tank_id=tank, headers=admin() if headers == "admin" else staff())
     assert (response.status_code, response.json()) == (404, {"detail": "not found"})
     assert changes(site) == []
 
@@ -159,5 +160,5 @@ def test_a_second_change_in_one_second_is_refused(site, client) -> None:
 def test_a_clash_with_a_stored_configuration_is_refused(site, client) -> None:
     seed(site, config(2, 81, 1, NOW, NOW + 5))
     add(site, *chained(2, POINTS))
-    assert put(client, tank_id=81, headers=STAFF).status_code == 409
+    assert put(client, tank_id=81, headers=staff()).status_code == 409
     assert len(configs(site)) == 2 and changes(site) == []
