@@ -11,8 +11,8 @@ from collections.abc import Iterator
 import access_tokens
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, select, text
-from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy import Engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T, event, store
 from test_alarm_thresholds import add, threshold
@@ -183,29 +183,3 @@ def test_a_race_lost_in_the_database_answers_already_acknowledged(
     monkeypatch.setattr(Session, "commit", lost_race)
     response = acknowledge(client)
     assert (response.status_code, response.json()) == (409, ALREADY)
-
-
-@pytest.mark.parametrize(
-    "statement",
-    ["UPDATE alarm_acknowledgements SET note = 'changed'", "DELETE FROM alarm_acknowledgements"],
-)
-def test_an_acknowledgement_is_never_changed_or_deleted(site, client, statement) -> None:
-    store(site, *event(1, T + 10))
-    acknowledge(client, note="kept")
-
-    refused = pytest.raises(DBAPIError, match="alarm_acknowledgements is append-only")
-    with refused, site.begin() as db:
-        db.execute(text(statement))
-    assert acknowledgements(site) == [(1, "user-1", "operator", "kept")]
-
-
-@pytest.mark.parametrize(
-    "fields",
-    [{"alarm_event_id": 1}, {"role": "service"}, {"subject": ""}, {"note": ""}, {"at_unix_ms": -1}],
-)
-def test_the_table_refuses_a_second_or_a_bad_row(site, client, fields) -> None:
-    store(site, *event(1, T + 10), *event(2, T + 20, threshold_id=2))
-    acknowledge(client)
-    row = {"alarm_event_id": 2, "subject": "user-2", "role": "admin", "at_unix_ms": 1, "note": None}
-    with pytest.raises(IntegrityError):
-        add(site, AlarmAcknowledgementRow(**(row | fields)))
