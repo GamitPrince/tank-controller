@@ -2,7 +2,7 @@
 
 - Story ID: S-096 (issue #194).
 - Epic: E3 (P1-02, P1-12). Points: 1. Priority: Should. Component: simulator. Review flag: one collaborator other than the author (S-010). Not a safety path.
-- Part 2 of 3, stacked on S-095 (#193). The decisions and the `[Confirm]` items for all three parts are in [`S-095-simulator-batches.md`](S-095-simulator-batches.md).
+- Part 2 of 3, stacked on S-095 (#193). The decisions for all three parts, all confirmed, are in [`S-095-simulator-batches.md`](S-095-simulator-batches.md).
 
 ## Goal
 
@@ -41,11 +41,11 @@ Simulator pytest through `simulator/ci.sh` and the `simulator` CI job. The backe
 
 ## Out of scope
 
-Publishing to a broker or any network; batches as the default output (S-095 `[Confirm]` 1); gap records (S-097).
+Publishing to a broker or any network; batches as the default output (S-095 open question 1); gap records (S-097).
 
-## Open questions [Confirm]
+## Open questions (confirmed by the tech lead, 28 Nov 2026)
 
-See S-095: 1 (an option, not the default) and 4 (hex lines).
+Both confirmed with S-095's items: 1 (an option, not the default) and 4 (hex lines).
 
 ## PR checklist notes
 
