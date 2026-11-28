@@ -46,7 +46,7 @@ Put the password in libpq's password file, `%APPDATA%\postgresql\pgpass.conf` on
 TANKAPI_TEST_DATABASE_URL="postgresql+psycopg://tankai_dev@localhost:5432/postgres" PYTHON=python bash scripts/ci/run-component.sh backend
 ```
 
-The backend role may only add and read audit entries. `sql/backend-role-grants.sql` gives it that: SELECT and INSERT on `audit_entries` and use of its sequence, and nothing else. Run it as the table owner after `alembic upgrade head`; the tests run it the same way. The role does not own the table, so it cannot drop the append-only triggers.
+The backend role holds exactly what the backend's code runs, on every table (S-098, S-104). `sql/backend-role-grants.sql` takes everything back, then grants SELECT on the ownership tables; SELECT and INSERT on the record tables (the `reading_samples` hypertable included), the strapping points and the four append-only tables; SELECT, INSERT and UPDATE of `valid_to_unix_s` alone on `alarm_thresholds` and `level_configurations`; and USAGE on the sequences those inserts draw from. Nothing on `alembic_version` or `reading_minutes`, and no DELETE, TRUNCATE, REFERENCES or TRIGGER anywhere. Run it as the table owner after `alembic upgrade head`, and again after every migration; the tests run it the same way. The role owns nothing, so it runs no DDL and cannot drop the append-only triggers. Each table's decision is also in `tests/test_backend_role.py`, whose guard fails in CI when a new table has none: add the table to both.
 
 ### TimescaleDB (S-100)
 
