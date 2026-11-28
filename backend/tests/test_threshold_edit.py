@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select, text
 from sqlalchemy.orm import Session
-from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T
+from test_alarm_history import EXAMPLE, SAMPLE, T
 from test_alarm_recording import events, scan, send
 from test_alarm_thresholds import add, threshold
 
@@ -42,9 +42,16 @@ BODY = {
     "limit": 19_000,
     "deadband": 200,
 }
-ADMIN = access_tokens.bearer(
-    **{auth.GROUPS_CLAIM: ["admin"], auth.CUSTOMER_CLAIM: str(EXAMPLE), "sub": "admin-1"}
-)
+
+
+def admin() -> dict[str, str]:
+    """Made per call: a token made at import could expire during a long run."""
+    claims = {auth.GROUPS_CLAIM: ["admin"], auth.CUSTOMER_CLAIM: str(EXAMPLE), "sub": "admin-1"}
+    return access_tokens.bearer(**claims)
+
+
+def staff() -> dict[str, str]:
+    return access_tokens.bearer(**{auth.GROUPS_CLAIM: ["service"], "sub": "staff-1"})
 
 
 def seed(engine: Engine, *rows: object) -> None:
@@ -84,7 +91,8 @@ def client(site: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient
     app.dependency_overrides.clear()
 
 
-def put(client: TestClient, tank_id: object = 71, headers: dict = ADMIN, **changes):
+def put(client: TestClient, tank_id: object = 71, headers: dict | None = None, **changes):
+    headers = admin() if headers is None else headers
     return client.put(ROUTE.format(tank_id=tank_id), json=BODY | changes, headers=headers)
 
 
@@ -141,7 +149,7 @@ def test_an_old_scan_is_still_judged_by_the_threshold_of_its_time(site, client) 
 
 
 def test_service_edits_any_tank_and_is_audited(site, client) -> None:
-    assert put(client, tank_id=81, headers=STAFF).status_code == 200
+    assert put(client, tank_id=81, headers=staff()).status_code == 200
     assert [(c.subject, c.role, c.tank_id) for c in changes(site)] == [("staff-1", "service", 81)]
     with Session(site) as db:
         entry = db.scalars(select(AuditRow)).one()
@@ -156,9 +164,9 @@ def test_operator_and_maintenance_are_refused(site, client, role) -> None:
     assert len(thresholds(site)) == 1 and changes(site) == []
 
 
-@pytest.mark.parametrize(("tank", "headers"), [(81, ADMIN), (99, ADMIN), (99, STAFF)])
+@pytest.mark.parametrize(("tank", "headers"), [(81, "admin"), (99, "admin"), (99, "service")])
 def test_another_customers_tank_answers_as_an_unknown_one(site, client, tank, headers) -> None:
-    response = put(client, tank_id=tank, headers=headers)
+    response = put(client, tank_id=tank, headers=admin() if headers == "admin" else staff())
     assert (response.status_code, response.json()) == (404, {"detail": "not found"})
     assert changes(site) == []
 
