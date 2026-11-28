@@ -27,6 +27,7 @@ Useful flags:
 | --- | --- |
 | `--output capture.bin` | write the framed byte stream a consumer actually reads |
 | `--batches batches.txt` | write batch messages, one per line as hex: what the ESP32 publishes (S-095) |
+| `--buffer-capacity N` | records the outage buffer holds; beyond it scans are lost and a gap record says so |
 | `--scans N --interval-ms M` | how many scans, and the simulated gap between them |
 | `--sntp-sync-after-ms N` | boot without a known wall clock, as a real device does |
 | `--fault 2001:sensor_fault` | inject a sensor fault (also `out_of_range`, `stale`) |
@@ -93,12 +94,14 @@ A batch is closed:
 - at the end of a run, as a shorter last batch.
 
 After an outage the backlog drains oldest first, five to a batch, with its
-original timestamps, and a change inside the backlog does not cut it. Every
-batch is checked against the schema's `batch` rule before it is written. `--replay capture.bin --batches batches.txt` regroups an earlier
+original timestamps, and a change inside the backlog does not cut it. When the
+outage buffer is full the lost scans arrive as one gap record after the buffered
+ones (S-040). Every batch is checked against the schema's `batch` rule before it
+is written. `--replay capture.bin --batches batches.txt` regroups an earlier
 capture the same way.
 
 ```sh
-python -m tanksim --scans 20 --link-drop 5-12 --batches batches.txt
+python -m tanksim --scans 20 --link-drop 5-12 --buffer-capacity 4 --batches batches.txt
 ```
 
 ## Outage replay with the original timestamps
