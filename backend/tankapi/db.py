@@ -31,6 +31,8 @@ configuration with its history (S-085); ``tankapi.level_config`` reads them (S-0
 history of raised and cleared alarms (S-089): like ``audit_entries``, its
 migration's triggers refuse UPDATE and DELETE. ``alarm_acknowledgements``
 (S-092) records who acknowledged a raised event, once, and is append-only too.
+``config_changes`` (S-101) records every change to a tank's thresholds or level
+configuration, with the values before and after; append-only as well.
 
 ``reading_samples`` (S-100) repeats each reading of a time-known scan with the
 scan's time, for TimescaleDB: there it is a hypertable whose samples are dropped
@@ -95,6 +97,7 @@ ROLE_MAX_CHARS = 16
 METHOD_MAX_CHARS = 8
 ROUTE_MAX_CHARS = 200
 NOTE_MAX_CHARS = 200
+KIND_MAX_CHARS = 24
 # An assignment with no end is the device's current one; a device has at most one.
 OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
 # Likewise a tank has at most one current level configuration (S-085).
@@ -456,6 +459,24 @@ class AlarmAcknowledgementRow(Base):
     role: Mapped[str] = mapped_column(String(ROLE_MAX_CHARS))
     at_unix_ms: Mapped[int] = mapped_column(BigInteger)
     note: Mapped[str | None] = mapped_column(String(NOTE_MAX_CHARS))
+
+
+class ConfigChangeRow(Base):
+    """One change to a tank's alarm thresholds or level configuration, with who made it,
+    the server's time and the values before and after as JSON text. Never updated (S-101)."""
+
+    __tablename__ = "config_changes"
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    at_unix_ms: Mapped[int] = mapped_column(BigInteger)
+    subject: Mapped[str] = mapped_column(String(SUBJECT_MAX_CHARS))
+    role: Mapped[str] = mapped_column(String(ROLE_MAX_CHARS))
+    tank_id: Mapped[int] = mapped_column(ForeignKey("tanks.id"))
+    kind: Mapped[str] = mapped_column(String(KIND_MAX_CHARS))
+    before_row_id: Mapped[int | None] = mapped_column(BigInteger)
+    after_row_id: Mapped[int | None] = mapped_column(BigInteger)
+    before: Mapped[str | None] = mapped_column(Text)
+    after: Mapped[str | None] = mapped_column(Text)
 
 
 class AuditRow(Base):
