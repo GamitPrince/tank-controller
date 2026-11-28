@@ -8,7 +8,7 @@ import calendar
 import time
 
 import pytest
-from conftest import POSTGRES
+from conftest import POLICY_RUNNING, POSTGRES, TIMESCALE_JOBS
 from sqlalchemy import Engine, func, select, text
 from sqlalchemy.orm import Session
 from test_store import BOOT, SIMULATOR_BATCH, store
@@ -21,53 +21,12 @@ DAY_S = 86_400
 # A minute boundary, so every test scan below falls in one known bucket.
 MINUTE = 1_763_683_200
 LEVEL, SWITCH = 1001, 2001
-OUR_JOBS = (
-    "FROM timescaledb_information.jobs"
-    " WHERE hypertable_name IN ('reading_samples', 'reading_minutes')"
-)
-# A policy run is a background worker on this database named after its policy.
-POLICY_RUNNING = (
-    "SELECT count(*) FROM pg_stat_activity"
-    " WHERE datname = current_database() AND application_name LIKE '%Policy%'"
-)
-SETTLE_TIMEOUT_S = 30
-JOB_SETTING = f"SELECT config ->> :key {OUR_JOBS} AND proc_name = :proc"
-POLL_S = 0.2
+JOB_SETTING = f"SELECT config ->> :key {TIMESCALE_JOBS} AND proc_name = :proc"
 MINUTES = text(
     "SELECT signal_id, samples, good_samples, worst_quality, min_value, max_value,"
     " avg_value, true_samples FROM reading_minutes WHERE device_id = 'TS-1'"
     " ORDER BY minute, signal_id"
 )
-
-
-@pytest.fixture
-def engine(engine: Engine) -> Engine:
-    """The migrated database, with TimescaleDB's two policies paused where it has them.
-
-    The scheduler may start each policy as soon as it is created, and the fixture data is
-    older than 90 days, so a retention run still in flight could drop it under a test.
-    The tests run the jobs themselves, once no policy run is left.
-    """
-    if engine.dialect.name == POSTGRES and has_timescale(engine):
-        with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as db:
-            db.execute(text(f"SELECT alter_job(job_id, scheduled => false) {OUR_JOBS}"))
-            deadline = time.monotonic() + SETTLE_TIMEOUT_S
-            quiet_polls = 0
-            # Twice quiet in a row, so a worker that was just starting is seen too.
-            while quiet_polls < 2:
-                assert time.monotonic() < deadline, "a TimescaleDB policy run never ended"
-                quiet_polls = 0 if db.scalar(text(POLICY_RUNNING)) else quiet_polls + 1
-                time.sleep(POLL_S)
-    return engine
-
-
-def has_timescale(engine: Engine) -> bool:
-    with engine.connect() as db:
-        return bool(
-            db.scalar(
-                text("SELECT count(*) FROM pg_extension WHERE extname = :e"), {"e": "timescaledb"}
-            )
-        )
 
 
 def scan(sequence: int, unix_time_s: int | None, *readings: Reading) -> ScanRecord:
@@ -136,6 +95,18 @@ def test_reading_samples_is_a_hypertable_with_one_day_chunks(engine: Engine) -> 
         ).one()
     assert dimension.column_name == "t"
     assert dimension.time_interval.days == 1
+
+
+@ON_TIMESCALE
+def test_the_policies_stay_in_place_but_paused_under_test(engine: Engine) -> None:
+    with engine.connect() as db:
+        jobs = db.execute(text(f"SELECT proc_name, scheduled {TIMESCALE_JOBS}")).all()
+        running = db.scalar(text(POLICY_RUNNING))
+    assert sorted(jobs) == [
+        ("policy_refresh_continuous_aggregate", False),
+        ("policy_retention", False),
+    ]
+    assert running == 0
 
 
 @ON_TIMESCALE
