@@ -21,6 +21,7 @@ an append-only log does not overwrite its own history.
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import BinaryIO, Protocol
 
@@ -95,10 +96,20 @@ class FanOutSink:
             sink.deliver(delivery)
 
 
+#: Builds a framed gap record from the first and last dropped frames and the
+#: count (:func:`tanksim.gap.gap_frame`).
+GapFrameBuilder = Callable[[bytes, bytes, int], bytes]
+
+
 class BufferedLink:
     """A link that buffers while it is down and replays when it comes back."""
 
-    def __init__(self, sink: Sink, capacity: int = DEFAULT_BUFFER_CAPACITY) -> None:
+    def __init__(
+        self,
+        sink: Sink,
+        capacity: int = DEFAULT_BUFFER_CAPACITY,
+        gap_frame: GapFrameBuilder | None = None,
+    ) -> None:
         if capacity < 1:
             raise LinkError(f"buffer capacity must be at least 1, got {capacity}")
         self._sink = sink
@@ -106,6 +117,10 @@ class BufferedLink:
         self._buffer: deque[Delivery] = deque()
         self._up = True
         self.dropped = 0
+        # Without a builder, dropped scans are only counted, as before S-095.
+        self._gap_frame = gap_frame
+        self._lost: list[Delivery] = []
+        self._dropped_reported = 0
 
     @property
     def up(self) -> bool:
@@ -140,6 +155,8 @@ class BufferedLink:
             # An append-only log that is full cannot take the new record. The
             # history already written is what survives.
             self.dropped += 1
+            # Keep only the first and the latest dropped scan: the gap's two ends.
+            self._lost[1:] = [delivery]
             return False
         self._buffer.append(delivery)
         return False
@@ -169,4 +186,22 @@ class BufferedLink:
                 )
             )
             replayed += 1
-        return replayed
+        return replayed + self._deliver_gap()
+
+    def _deliver_gap(self) -> int:
+        """After the backlog, say which scans it lost (S-040). Returns 1 if it did."""
+        lost, count = self._lost, self.dropped - self._dropped_reported
+        self._lost = []
+        self._dropped_reported = self.dropped
+        if self._gap_frame is None or not lost:
+            return 0
+        first, last = lost[0], lost[-1]
+        self._sink.deliver(
+            Delivery(
+                frame=self._gap_frame(first.frame, last.frame, count),
+                uptime_ms=first.uptime_ms,
+                unix_time_s=first.unix_time_s,
+                replayed=True,
+            )
+        )
+        return 1

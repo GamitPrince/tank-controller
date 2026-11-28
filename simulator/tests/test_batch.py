@@ -18,6 +18,7 @@ from tanksim.batch import (
 )
 from tanksim.faults import FaultPlan, parse_link_drop, parse_signal_fault
 from tanksim.framing import encode_frame
+from tanksim.gap import gap_frame
 from tanksim.link import BufferedLink, Delivery
 
 CONTACT, ANALOGUE = 3001, 1001
@@ -57,9 +58,10 @@ def batches() -> list[Batch]:
 def run(make_device, signal_list, schema, batches):
     """Run the simulated device into a batch sink and return its batches."""
 
-    def go(scans: int, plan: FaultPlan | None = None):
+    def go(scans: int, plan: FaultPlan | None = None, capacity: int = 1024):
         sink = BatchSink(batches.append, contact_ids(signal_list), schema)
-        results = make_device(BufferedLink(sink), plan, sntp_sync_after_ms=2500).run(scans, 1000)
+        link = BufferedLink(sink, capacity, lambda a, b, n: gap_frame(a, b, n, schema))
+        results = make_device(link, plan, sntp_sync_after_ms=2500).run(scans, 1000)
         sink.close()
         return results
 
@@ -101,6 +103,15 @@ def test_a_backlog_replays_oldest_first_with_its_original_timestamps(run, batche
         assert message["up"] == result.record.uptime_ms
         assert message.get("t") == result.record.unix_time_s
     assert messages[1]["tk"] is False and messages[3]["tk"] is True
+
+
+def test_scans_the_buffer_lost_arrive_as_a_gap_record_in_a_batch(run, batches, schema):
+    run(8, FaultPlan(link_drops=(parse_link_drop("1-5"),)), capacity=2)
+    first, second = (decoded(b, schema) for b in batches)
+    assert [m.get("seq") for m in first] == [0, 1, 2, None, 6]
+    gap = first[3]["gap"]
+    assert (gap["lost"], gap["first"]["seq"], gap["last"]["seq"]) == (3, 3, 5)
+    assert [m["seq"] for m in second] == [7]
 
 
 @pytest.mark.parametrize("size", [0, MAX_BATCH_MESSAGES + 1])
