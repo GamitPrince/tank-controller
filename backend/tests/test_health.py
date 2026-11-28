@@ -30,7 +30,7 @@ def test_unknown_path_is_not_found(client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_openapi_documents_get_paths_the_two_writes_and_the_version(client) -> None:
+def test_openapi_documents_get_paths_the_writes_and_the_version(client) -> None:
     schema = client.get("/openapi.json").json()
 
     assert schema["info"]["version"] == version("tankapi")
@@ -41,9 +41,11 @@ def test_openapi_documents_get_paths_the_two_writes_and_the_version(client) -> N
         "/v1/tanks/{tank_id}/alarms",
         "/v1/alarms/{event_id}/acknowledgement",
         "/v1/tanks/{tank_id}/alarm-thresholds",
+        "/v1/tanks/{tank_id}/level-configuration",
     }
-    # The writes are cloud records only (S-093, S-102); the rest only read.
+    # The writes are cloud records only (S-093, S-102, S-103); the rest only read.
     methods = {path: set(found) for path, found in schema["paths"].items()}
     assert methods.pop("/v1/alarms/{event_id}/acknowledgement") == {"post"}
     assert methods.pop("/v1/tanks/{tank_id}/alarm-thresholds") == {"put"}
+    assert methods.pop("/v1/tanks/{tank_id}/level-configuration") == {"put"}
     assert all(found == {"get"} for found in methods.values())
