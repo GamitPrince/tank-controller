@@ -5,8 +5,8 @@ and every such access is recorded; decision 4 makes the record an append-only
 table, ``audit_entries`` (migration 0004 refuses UPDATE and DELETE). Two pieces
 do it. :func:`noting_requests` gives the ``/v1`` router a dependency that runs
 once the token has passed and, for a service caller, keeps who asked, what
-(method, route template, device ID and the query parameters that select data)
-and when. :func:`write_entries`, an HTTP middleware, adds the response status
+(method, route template, device ID, and the tank ID and query parameters that
+select data) and when. :func:`write_entries`, an HTTP middleware, adds the response status
 and writes the entry after the response is built and before it is sent, so a
 refused request (404, 422, 500) is recorded too. A request refused before the
 caller is known (401, 403, 503) has no service caller to record.
@@ -41,7 +41,9 @@ from tankapi.session import get_engine
 
 AUDITED_ROLES = frozenset({Role.SERVICE})
 # The query parameters that choose which data a request reads.
-SELECTING_PARAMETERS = ("signal", "from", "to")
+SELECTING_PARAMETERS = ("signal", "from", "to", "limit")
+# The path parameters, other than the device, that choose which data a request reads.
+SELECTING_PATH_PARAMETERS = ("tank_id",)
 DEVICE_PARAMETER = "device_id"
 # A refused request may carry anything, so each recorded value is cut to this.
 VALUE_MAX_CHARS = 64
@@ -65,6 +67,9 @@ def noting_requests(prefix: str) -> Callable[..., None]:
             return
         query = request.query_params
         selection = {name: _cut(query[name]) for name in SELECTING_PARAMETERS if name in query}
+        path = request.path_params
+        chosen = (name for name in SELECTING_PATH_PARAMETERS if name in path)
+        selection |= {name: _cut(str(path[name])) for name in chosen}
         device_id = request.path_params.get(DEVICE_PARAMETER)
         entry = AuditRow(
             at_unix_ms=time.time_ns() // NS_PER_MS,

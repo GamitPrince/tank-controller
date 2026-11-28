@@ -38,5 +38,6 @@ def test_openapi_documents_only_get_paths_and_the_app_version(client: TestClient
         "/health",
         "/v1/devices/{device_id}/readings",
         "/v1/devices/{device_id}/latest",
+        "/v1/tanks/{tank_id}/alarms",
     }
     assert all(set(methods) == {"get"} for methods in schema["paths"].values())
