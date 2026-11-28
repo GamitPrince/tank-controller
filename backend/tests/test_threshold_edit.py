@@ -11,7 +11,7 @@ from collections.abc import Iterator
 import access_tokens
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, select, text
 from sqlalchemy.orm import Session
 from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T
 from test_alarm_recording import events, scan, send
@@ -47,6 +47,17 @@ ADMIN = access_tokens.bearer(
 )
 
 
+def seed(engine: Engine, *rows: object) -> None:
+    """Adds rows with fixed IDs, then moves Postgres's ID sequences past them, as SQLite does."""
+    add(engine, *rows)
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.begin() as db:
+        for table in {row.__tablename__ for row in rows}:
+            sequence = f"pg_get_serial_sequence('{table}', 'id')"
+            db.execute(text(f"SELECT setval({sequence}, max(id)) FROM {table}"))
+
+
 def person(role: str, customer_id: int = EXAMPLE) -> dict[str, str]:
     claims = {auth.GROUPS_CLAIM: [role], auth.CUSTOMER_CLAIM: str(customer_id)}
     return access_tokens.bearer(**claims)
@@ -60,7 +71,7 @@ def site(engine: Engine) -> Engine:
     add(engine, *(TankRow(id=n, plant_id=n // 10, name="Tank 1") for n in (71, 81)))
     add(engine, DeviceRow(device_id="DEV-A"))
     add(engine, AssignmentRow(device_id="DEV-A", tank_id=71, valid_from_unix_s=T - 100))
-    add(engine, threshold(1, start=T - 100, tank_id=71))
+    seed(engine, threshold(1, start=T - 100, tank_id=71))
     return engine
 
 
@@ -177,7 +188,7 @@ def test_a_threshold_breaking_a_rule_is_refused(site, client, changes_) -> None:
 
 
 def test_a_high_must_lie_above_the_low_in_force(site, client) -> None:
-    add(site, threshold(2, start=T - 100, tank_id=71, direction="low", limit_value=6_000))
+    seed(site, threshold(2, start=T - 100, tank_id=71, direction="low", limit_value=6_000))
     assert put(client, limit=6_000).status_code == 422
     assert put(client, limit=6_001).status_code == 200
 
@@ -196,7 +207,7 @@ def test_a_second_change_in_one_second_is_refused(site, client) -> None:
 
 def test_a_clash_with_a_stored_row_is_refused_and_nothing_kept(site, client) -> None:
     # A closed row of this key starting at NOW: the new row would repeat its start.
-    add(site, threshold(2, start=NOW, end=NOW + 5, tank_id=71, signal_id=1002))
+    seed(site, threshold(2, start=NOW, end=NOW + 5, tank_id=71, signal_id=1002))
     response = put(client, signal_id=1002)
     assert response.status_code == 409
     assert len(thresholds(site)) == 2 and changes(site) == []
