@@ -3,10 +3,11 @@
 Phase 1 is read-only: the backend receives and serves plant data and never
 sends a command to a device. It serves the health probe (S-066) and, under
 the ``/v1`` prefix, the read-only readings query (S-072) and latest values
-with their liveness (S-084) and a tank's alarm history (S-091). Every ``/v1`` route
-sits on one router that checks the caller's token first (S-075) and records
-every service caller's request in the audit trail (S-080); ``/health`` stays
-open.
+with their liveness (S-084) and a tank's alarm history (S-091), and the one
+write a person makes: acknowledging an alarm, a cloud record only (S-093).
+Every ``/v1`` route sits on one router that checks the caller's token first
+(S-075) and records every service caller's request in the audit trail (S-080);
+``/health`` stays open.
 """
 
 from importlib.metadata import version
@@ -14,6 +15,7 @@ from importlib.metadata import version
 from fastapi import APIRouter, Depends, FastAPI
 from pydantic import BaseModel
 
+from tankapi.alarm_acknowledge import router as alarm_acknowledge_router
 from tankapi.alarm_history import router as alarm_history_router
 from tankapi.audit import noting_requests, write_entries
 from tankapi.auth import require_caller
@@ -43,6 +45,7 @@ v1 = APIRouter(
 v1.include_router(readings_router)
 v1.include_router(latest_router)
 v1.include_router(alarm_history_router)
+v1.include_router(alarm_acknowledge_router)
 
 app = FastAPI(title="Tank-AI backend", version=APP_VERSION)
 app.middleware("http")(write_entries)

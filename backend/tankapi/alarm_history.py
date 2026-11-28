@@ -89,7 +89,7 @@ def get_alarm_history(
     """The tank's alarm events in ``[from, to)``, newest first, at most ``limit``."""
     if not start < end <= start + MAX_RANGE_S:
         raise HTTPException(HTTP_UNPROCESSABLE, f"need from < to <= from + {MAX_RANGE_S}")
-    if not _visible(session, caller, tank_id):
+    if not tank_visible(session, caller, tank_id):
         raise HTTPException(HTTP_NOT_FOUND, NOT_FOUND)
     t = AlarmEventRow.unix_time_s
     query = (
@@ -110,7 +110,7 @@ def get_alarm_history(
     )
 
 
-def _visible(session: Session, caller: Caller, tank_id: int) -> bool:
+def tank_visible(session: Session, caller: Caller, tank_id: int) -> bool:
     """Whether the tank exists and, unless the caller is service, is their customer's."""
     query = select(PlantRow.customer_id).join(TankRow, TankRow.plant_id == PlantRow.id)
     owner = session.scalar(query.where(TankRow.id == tank_id))
