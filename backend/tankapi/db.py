@@ -32,15 +32,22 @@ history of raised and cleared alarms (S-089): like ``audit_entries``, its
 migration's triggers refuse UPDATE and DELETE. ``alarm_acknowledgements``
 (S-092) records who acknowledged a raised event, once, and is append-only too.
 
+``reading_samples`` (S-100) repeats each reading of a time-known scan with the
+scan's time, for TimescaleDB: there it is a hypertable whose samples are dropped
+after 90 days, summarised per minute in ``reading_minutes`` (migration 0009).
+
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
 """
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    DateTime,
     Float,
     ForeignKey,
     ForeignKeyConstraint,
@@ -118,6 +125,9 @@ class ScanRow(Base):
     readings: Mapped[list[ReadingRow]] = relationship(
         order_by="ReadingRow.position", cascade="all, delete-orphan"
     )
+    samples: Mapped[list[SampleRow]] = relationship(
+        order_by="SampleRow.position", cascade="all, delete-orphan"
+    )
 
     @classmethod
     def from_record(cls, record: ScanRecord) -> ScanRow:
@@ -174,6 +184,43 @@ class ReadingRow(Base):
     def to_reading(self) -> Reading:
         value = self.value_bool if self.value_bool is not None else self.value_int
         return Reading(self.signal_id, Quality(self.quality), self.age_ms, value)
+
+
+class SampleRow(Base):
+    """One reading of a time-known scan at the scan's time ``t`` (S-100). Only the
+    store writes it, for a scan it has just added; time-unknown scans have none."""
+
+    __tablename__ = "reading_samples"
+    __table_args__ = (Index("ix_reading_samples_device_signal_t", "device_id", "signal_id", "t"),)
+
+    scan_record_id: Mapped[int] = mapped_column(ForeignKey("scan_records.id"), primary_key=True)
+    position: Mapped[int] = mapped_column(Integer, primary_key=True)
+    t: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    device_id: Mapped[str] = mapped_column(String(DEVICE_ID_MAX_BYTES))
+    signal_id: Mapped[int] = mapped_column(BigInteger)
+    quality: Mapped[int] = mapped_column(SmallInteger)
+    value_int: Mapped[int | None] = mapped_column(BigInteger)
+    value_bool: Mapped[bool | None] = mapped_column(Boolean)
+
+    @classmethod
+    def for_scan(cls, record: ScanRecord) -> list[SampleRow]:
+        """One sample per reading, or none when the scan's time was not known."""
+        if record.unix_time_s is None:
+            return []
+        t = datetime.fromtimestamp(record.unix_time_s, UTC)
+        rows = (ReadingRow.from_reading(r, n) for n, r in enumerate(record.readings))
+        return [
+            cls(
+                position=row.position,
+                t=t,
+                device_id=record.device_id,
+                signal_id=row.signal_id,
+                quality=row.quality,
+                value_int=row.value_int,
+                value_bool=row.value_bool,
+            )
+            for row in rows
+        ]
 
 
 class GapRow(Base):
