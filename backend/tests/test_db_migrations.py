@@ -20,6 +20,7 @@ TABLES = {"scan_records", "readings", "gap_records"} | {
     "level_configurations",
     "strapping_points",
     "alarm_thresholds",
+    "alarm_events",
 }
 
 
@@ -78,17 +79,26 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "RAISE EXCEPTION 'audit_entries is append-only'" in sql
     assert "BEFORE UPDATE OR DELETE ON audit_entries FOR EACH ROW" in sql
     assert "BEFORE TRUNCATE ON audit_entries FOR EACH STATEMENT" in sql
+    assert "RAISE EXCEPTION 'alarm_events is append-only'" in sql
+    assert "BEFORE UPDATE OR DELETE ON alarm_events FOR EACH ROW" in sql
+    assert "BEFORE TRUNCATE ON alarm_events FOR EACH STATEMENT" in sql
+    assert "CHECK (unix_time_s IS NOT NULL OR COALESCE(reason IN ('time_unknown'), FALSE))" in sql
 
 
-def test_postgres_downgrade_drops_the_audit_function_offline() -> None:
+@pytest.mark.parametrize(
+    ("revisions", "table"), [("0004:0003", "audit_entries"), ("0007:0006", "alarm_events")]
+)
+def test_postgres_downgrade_drops_the_append_only_function_offline(
+    revisions: str, table: str
+) -> None:
     output = StringIO()
     config = Config(ALEMBIC_INI, output_buffer=output)
     config.set_main_option("sqlalchemy.url", "postgresql://")
 
-    command.downgrade(config, "0004:0003", sql=True)
+    command.downgrade(config, revisions, sql=True)
 
-    assert "DROP TABLE audit_entries" in output.getvalue()
-    assert "DROP FUNCTION audit_entries_refuse_change()" in output.getvalue()
+    assert f"DROP TABLE {table}" in output.getvalue()
+    assert f"DROP FUNCTION {table}_refuse_change()" in output.getvalue()
 
 
 def test_url_comes_from_the_environment_and_is_required(

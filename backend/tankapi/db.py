@@ -27,7 +27,9 @@ triggers refuse UPDATE and DELETE. ``tankapi.audit`` writes it (S-080).
 configuration with its history (S-085); ``tankapi.level_config`` reads them (S-086).
 
 ``alarm_thresholds`` holds each tank's advisory alarm limits with their history
-(S-087). Nothing reads them yet.
+(S-087); ``tankapi.thresholds`` reads them. ``alarm_events`` is the append-only
+history of raised and cleared alarms (S-089): like ``audit_entries``, its
+migration's triggers refuse UPDATE and DELETE.
 
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
@@ -78,6 +80,7 @@ NAME_MAX_CHARS = 100
 MEASURE_MAX_CHARS = 16
 DIRECTION_MAX_CHARS = 8
 CLASS_MAX_CHARS = 16
+STATE_MAX_CHARS = 16
 # A Cognito sub is a 36-character UUID; a route template is a path.
 SUBJECT_MAX_CHARS = 128
 ROLE_MAX_CHARS = 16
@@ -371,6 +374,25 @@ class AlarmThresholdRow(Base):
     deadband: Mapped[int] = mapped_column(BigInteger)
     valid_from_unix_s: Mapped[int] = mapped_column(BigInteger)
     valid_to_unix_s: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class AlarmEventRow(Base):
+    """One change of an alarm's state, judged from one scan against the threshold row in
+    force at the scan's time, whose limit and deadband it copies. Never updated (S-089)."""
+
+    __tablename__ = "alarm_events"
+    __table_args__ = (UniqueConstraint("threshold_id", "scan_record_id"),)
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    threshold_id: Mapped[int] = mapped_column(ForeignKey("alarm_thresholds.id"))
+    scan_record_id: Mapped[int] = mapped_column(ForeignKey("scan_records.id"))
+    unix_time_s: Mapped[int | None] = mapped_column(BigInteger)
+    state: Mapped[str] = mapped_column(String(STATE_MAX_CHARS))
+    reason: Mapped[str | None] = mapped_column(String(STATE_MAX_CHARS))
+    value: Mapped[float | None] = mapped_column(Float)
+    quality: Mapped[int | None] = mapped_column(SmallInteger)
+    limit_value: Mapped[int] = mapped_column(BigInteger)
+    deadband: Mapped[int] = mapped_column(BigInteger)
 
 
 class AuditRow(Base):
