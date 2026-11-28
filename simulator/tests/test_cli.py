@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 
+import cbor2
 import pytest
 
 from tanksim.cli import build_parser, main
@@ -144,3 +145,33 @@ def test_an_explicit_signal_list_is_used(interfaces_dir):
 
 def test_the_parser_documents_the_read_only_scope():
     assert "Read-only" in build_parser().description
+
+
+def batch_lines(path) -> list[list[dict]]:
+    lines = path.read_text().splitlines()
+    return [cbor2.loads(bytes.fromhex(line)) for line in lines]
+
+
+def test_batches_are_written_one_hex_line_each(tmp_path, schema):
+    path = tmp_path / "batches.txt"
+    status, output = run("--scans", "7", "--batches", str(path))
+    assert status == 0
+    assert "wrote 2 batch message(s)" in output
+    assert path.read_bytes().count(b"\r") == 0
+    batches = batch_lines(path)
+    for batch in batches:
+        schema.validate(batch, "batch")
+    assert [[m["seq"] for m in batch] for batch in batches] == [[0, 1, 2, 3, 4], [5, 6]]
+
+
+def test_a_capture_can_be_replayed_into_batches(tmp_path, schema):
+    capture, path = tmp_path / "capture.bin", tmp_path / "batches.txt"
+    run("--scans", "6", "--output", str(capture))
+    status, output = run("--replay", str(capture), "--batches", str(path))
+    assert status == 0
+    assert "cut by full" in output and "cut by end" in output
+    records = [m for batch in batch_lines(path) for m in batch]
+    originals = [
+        decode(decode_frame(raw).payload, schema) for raw in split_frames(capture.read_bytes())
+    ]
+    assert records == originals
