@@ -46,7 +46,11 @@ Put the password in libpq's password file, `%APPDATA%\postgresql\pgpass.conf` on
 TANKAPI_TEST_DATABASE_URL="postgresql+psycopg://tankai_dev@localhost:5432/postgres" PYTHON=python bash scripts/ci/run-component.sh backend
 ```
 
-The backend role may only add and read audit entries. `sql/backend-role-grants.sql` gives it that: SELECT and INSERT on `audit_entries` and use of its sequence, and nothing else. Run it as the table owner after `alembic upgrade head`; the tests run it the same way. The role does not own the table, so it cannot drop the append-only triggers. TimescaleDB is not used yet.
+The backend role may only add and read audit entries. `sql/backend-role-grants.sql` gives it that: SELECT and INSERT on `audit_entries` and use of its sequence, and nothing else. Run it as the table owner after `alembic upgrade head`; the tests run it the same way. The role does not own the table, so it cannot drop the append-only triggers.
+
+### TimescaleDB (S-100)
+
+Migration 0009 adds `reading_samples`, one row per reading of a time-known scan at the scan's time `t`. On PostgreSQL where TimescaleDB is available it runs `CREATE EXTENSION IF NOT EXISTS timescaledb` (the extension is trusted, so the database owner needs no superuser rights) and makes the table a hypertable with one-day chunks and a 90-day retention policy; the `reading_minutes` continuous aggregate summarises each device, signal and minute over good samples only and is kept forever. On SQLite, or a PostgreSQL without TimescaleDB, the table stays plain and nothing is dropped (the migration logs a warning on PostgreSQL). `scan_records`, `readings` and `gap_records` are never trimmed: until the raw archive exists they stand in for it. The tests set `timescaledb.telemetry_level` to `off` on each throwaway database; the server-wide setting is the administrator's. `tests/test_reading_samples.py` holds the TimescaleDB tests, run only on the server.
 
 ## Run the app
 
