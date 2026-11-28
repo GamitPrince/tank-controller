@@ -34,7 +34,8 @@ from .cddl import Schema, load_schema
 from .clock import SimClock
 from .device import ScanResult, SimulatedDevice
 from .faults import FaultPlan, load_scenario, parse_link_drop, parse_signal_fault
-from .link import BufferedLink, FanOutSink, RecordingSink, Sink, StreamSink
+from .gap import gap_frame
+from .link import DEFAULT_BUFFER_CAPACITY, BufferedLink, FanOutSink, RecordingSink, Sink, StreamSink
 from .plant import PlantModel
 from .record import Quality
 from .replay import load_capture, replay
@@ -95,6 +96,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="also write batch messages to this file, one per line as hex (the MQTT payload)",
+    )
+    parser.add_argument(
+        "--buffer-capacity",
+        type=int,
+        default=DEFAULT_BUFFER_CAPACITY,
+        help="records the outage buffer holds; scans beyond it are lost and a gap record says so",
     )
     parser.add_argument(
         "--fault",
@@ -209,7 +216,11 @@ def _run_replay(args: argparse.Namespace, out: TextIO) -> int:
 
 
 def _build_device(args: argparse.Namespace, signal_list: SignalList, schema: Schema, sink: Sink):
-    link = BufferedLink(sink)
+    link = BufferedLink(
+        sink,
+        capacity=args.buffer_capacity,
+        gap_frame=lambda first, last, lost: gap_frame(first, last, lost, schema),
+    )
     device = SimulatedDevice(
         device_id=args.device_id,
         signal_list=signal_list,

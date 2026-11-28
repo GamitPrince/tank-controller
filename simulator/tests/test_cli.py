@@ -164,6 +164,14 @@ def test_batches_are_written_one_hex_line_each(tmp_path, schema):
     assert [[m["seq"] for m in batch] for batch in batches] == [[0, 1, 2, 3, 4], [5, 6]]
 
 
+def test_a_small_buffer_puts_a_gap_record_in_a_batch(tmp_path):
+    path = tmp_path / "batches.txt"
+    run("--scans", "6", "--link-drop", "1-3", "--buffer-capacity", "1", "--batches", str(path))
+    first = batch_lines(path)[0]
+    assert [m.get("seq") for m in first] == [0, 1, None, 4, 5]
+    assert first[2]["gap"]["lost"] == 2
+
+
 def test_a_capture_can_be_replayed_into_batches(tmp_path, schema):
     capture, path = tmp_path / "capture.bin", tmp_path / "batches.txt"
     run("--scans", "6", "--output", str(capture))
