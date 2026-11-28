@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -21,6 +22,18 @@ TERMINATE_OWN_CONNECTIONS = (
     "SELECT pg_terminate_backend(pid) FROM pg_stat_activity"
     " WHERE datname = :database AND usename = current_user AND pid <> pg_backend_pid()"
 )
+# S-100's two policies: retention on reading_samples, refresh on reading_minutes.
+TIMESCALE_JOBS = (
+    "FROM timescaledb_information.jobs"
+    " WHERE hypertable_name IN ('reading_samples', 'reading_minutes')"
+)
+# A policy run is a background worker on this database named after its policy.
+POLICY_RUNNING = (
+    "SELECT count(*) FROM pg_stat_activity"
+    " WHERE datname = current_database() AND application_name LIKE '%Policy%'"
+)
+SETTLE_TIMEOUT_S = 30
+POLL_S = 0.2
 
 
 def alembic_config(url: str) -> Config:
@@ -86,6 +99,8 @@ def engine(database_url: str) -> Iterator[Engine]:
     engine = create_engine(database_url)
     if engine.dialect.name == SQLITE:
         event.listen(engine, "connect", _enforce_foreign_keys)
+    elif has_timescale(engine):
+        pause_timescale_policies(engine)
     yield engine
     engine.dispose()
 
@@ -93,3 +108,27 @@ def engine(database_url: str) -> Iterator[Engine]:
 def _enforce_foreign_keys(connection: sqlite3.Connection, _record: object) -> None:
     # SQLite checks foreign keys only when each connection asks; Postgres always does.
     connection.execute("PRAGMA foreign_keys = ON")
+
+
+def has_timescale(engine: Engine) -> bool:
+    with engine.connect() as db:
+        query = text("SELECT count(*) FROM pg_extension WHERE extname = 'timescaledb'")
+        return bool(db.scalar(query))
+
+
+def pause_timescale_policies(engine: Engine) -> None:
+    """Unschedule S-100's policies on this throwaway database and wait out a run in flight.
+
+    The fixed test scans are older than 90 days, so a retention run the scheduler starts
+    could drop their samples under a test (S-105). The policies stay in place, with their
+    settings; a test that needs one runs it itself with ``CALL run_job``.
+    """
+    with engine.execution_options(isolation_level="AUTOCOMMIT").connect() as db:
+        db.execute(text(f"SELECT alter_job(job_id, scheduled => false) {TIMESCALE_JOBS}"))
+        deadline = time.monotonic() + SETTLE_TIMEOUT_S
+        quiet_polls = 0
+        # Twice quiet in a row, so a worker that was just starting is seen too.
+        while quiet_polls < 2:
+            assert time.monotonic() < deadline, "a TimescaleDB policy run never ended"
+            quiet_polls = 0 if db.scalar(text(POLICY_RUNNING)) else quiet_polls + 1
+            time.sleep(POLL_S)
