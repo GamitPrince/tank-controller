@@ -5,6 +5,7 @@ Example Co (7) has tank 71 with a warning high of 18 mA on the radar; Sample Ltd
 """
 
 import json
+import time
 from collections.abc import Iterator
 
 import access_tokens
@@ -16,7 +17,7 @@ from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T
 from test_alarm_recording import events, scan, send
 from test_alarm_thresholds import add, threshold
 
-from tankapi import auth, session, threshold_edit
+from tankapi import auth, session, settings_edit, threshold_edit
 from tankapi.db import (
     AlarmThresholdRow,
     AssignmentRow,
@@ -203,3 +204,8 @@ def test_a_clash_with_a_stored_row_is_refused_and_nothing_kept(site, client) -> 
 
 def test_no_token_is_refused(client) -> None:
     assert client.put(ROUTE.format(tank_id=71), json=BODY).status_code == 401
+
+
+def test_the_server_clock_is_unix_milliseconds() -> None:
+    before = time.time_ns() // 1_000_000
+    assert before <= settings_edit.now_ms() <= time.time_ns() // 1_000_000
