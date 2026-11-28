@@ -3,9 +3,10 @@
 Phase 1 is read-only: the backend receives and serves plant data and never
 sends a command to a device. It serves the health probe (S-066) and, under
 the ``/v1`` prefix, the read-only readings query (S-072) and latest values
-with their liveness (S-084) and a tank's alarm history (S-091), and the two
+with their liveness (S-084) and a tank's alarm history (S-091), and the
 writes a person makes, cloud records only: acknowledging an alarm (S-093) and
-setting a tank's alarm thresholds (S-102), never sent to a device.
+setting a tank's alarm thresholds (S-102) and level configuration (S-103),
+never sent to a device.
 Every ``/v1`` route sits on one router that checks the caller's token first
 (S-075) and records every service caller's request in the audit trail (S-080);
 ``/health`` stays open.
@@ -21,6 +22,7 @@ from tankapi.alarm_history import router as alarm_history_router
 from tankapi.audit import noting_requests, write_entries
 from tankapi.auth import require_caller
 from tankapi.latest import router as latest_router
+from tankapi.level_config_edit import router as level_config_edit_router
 from tankapi.readings import router as readings_router
 from tankapi.threshold_edit import router as threshold_edit_router
 
@@ -49,6 +51,7 @@ v1.include_router(latest_router)
 v1.include_router(alarm_history_router)
 v1.include_router(alarm_acknowledge_router)
 v1.include_router(threshold_edit_router)
+v1.include_router(level_config_edit_router)
 
 app = FastAPI(title="Tank-AI backend", version=APP_VERSION)
 app.middleware("http")(write_entries)
