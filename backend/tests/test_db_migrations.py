@@ -10,6 +10,8 @@ from sqlalchemy import Engine, create_engine, inspect
 
 from tankapi.db import Base
 
+pytestmark = pytest.mark.postgres
+
 TABLES = {"scan_records", "readings", "gap_records"} | {
     "customers",
     "plants",
@@ -76,7 +78,7 @@ def test_migration_renders_postgres_sql_offline() -> None:
         "FOREIGN KEY(configuration_id, previous_position, previous_height_mm, previous_volume_l)"
         " REFERENCES strapping_points (configuration_id, position, height_mm, volume_l)" in sql
     )
-    # Rendered only: no Postgres server runs these until the TimescaleDB container story.
+    # Rendered here; test_postgres.py and the postgres-marked tests run them on a server.
     assert "RAISE EXCEPTION 'audit_entries is append-only'" in sql
     assert "BEFORE UPDATE OR DELETE ON audit_entries FOR EACH ROW" in sql
     assert "BEFORE TRUNCATE ON audit_entries FOR EACH STATEMENT" in sql

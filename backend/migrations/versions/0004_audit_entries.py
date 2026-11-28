@@ -7,8 +7,8 @@ Create Date: 2026-11-27
 ADR-0008 decision 4: the backend may add audit rows but never edit or delete
 them. Triggers refuse UPDATE and DELETE in the database itself, so no query,
 hand-written or not, can rewrite the trail; on Postgres TRUNCATE is refused too.
-The SQLite triggers are tested; the Postgres function and triggers are only
-rendered as text, untested on a server until the TimescaleDB container story.
+The SQLite triggers are tested; the Postgres ones on a local
+server too, when TANKAPI_TEST_DATABASE_URL is set (S-098).
 [Confirm] The backend's own database role must also lack UPDATE, DELETE and
 TRUNCATE on the table and must not own it (the deployment story).
 

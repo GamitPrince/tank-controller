@@ -7,6 +7,10 @@ pytest==9.2.0
 pytest-cov==7.1.0
 ruff==0.17.6
 httpx2==2.16.2
+# The Postgres driver, test-only for now (S-098): the tests marked postgres use it when
+# TANKAPI_TEST_DATABASE_URL is set. The binary wheel carries its own libpq, so nothing
+# is installed outside the virtual environment.
+psycopg[binary]==3.3.9
 
 # Runtime dependencies, pinned here as well so a CI run is reproducible. The
 # ranges that a consumer of the package gets are in pyproject.toml.

@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from tankapi.db import AuditRow, GapRow, ReadingRow, ScanRow
 from tankapi.records import GapRecord, LostScan, Quality, Reading, ScanRecord, decode_message
 
+pytestmark = pytest.mark.postgres
+
 # The S-067 fixture: five simulator scans, time known from seq 3, 2001 faulted,
 # 1001 out of range, and the digital inputs as bools.
 SIMULATOR_BATCH = bytes.fromhex(
@@ -67,7 +69,7 @@ def test_faulted_reading_is_stored_with_no_value(engine: Engine) -> None:
 def test_same_device_boot_and_sequence_is_refused(engine: Engine) -> None:
     store(engine, ScanRow.from_record(scan()))
 
-    with pytest.raises(IntegrityError, match="UNIQUE"):
+    with pytest.raises(IntegrityError, match="(?i)unique constraint"):
         store(engine, ScanRow.from_record(scan(uptime_ms=6000)))
     store(engine, ScanRow.from_record(scan(sequence=8)), ScanRow.from_record(scan(device_id="X")))
 
@@ -89,7 +91,7 @@ def test_value_that_does_not_match_the_quality_is_refused(
     row.readings[0].quality, row.readings[0].value_int = quality, value_int
     row.readings[0].value_bool = value_bool
 
-    with pytest.raises(IntegrityError, match="CHECK"):
+    with pytest.raises(IntegrityError, match="(?i)check constraint"):
         store(engine, row)
 
 
@@ -104,7 +106,7 @@ def test_value_that_does_not_match_the_quality_is_refused(
     ],
 )
 def test_scan_breaking_the_decoder_rules_is_refused(engine: Engine, changes: dict) -> None:
-    with pytest.raises(IntegrityError, match="CHECK"):
+    with pytest.raises(IntegrityError, match="(?i)check constraint"):
         store(engine, ScanRow.from_record(scan(**changes)))
 
 
@@ -127,7 +129,7 @@ def test_gap_record_round_trips_with_both_marks(engine: Engine) -> None:
     ],
 )
 def test_gap_breaking_the_decoder_rules_is_refused(engine: Engine, changes: dict) -> None:
-    with pytest.raises(IntegrityError, match="CHECK"):
+    with pytest.raises(IntegrityError, match="(?i)check constraint"):
         store(engine, GapRow.from_record(replace(GAP, **changes)))
 
 

@@ -10,6 +10,8 @@ from tankapi.db import GapRow, ReadingRow, ScanRow
 from tankapi.records import GapRecord, LostScan, Message, ScanRecord, decode_message
 from tankapi.store import StoreResult, store_message
 
+pytestmark = pytest.mark.postgres
+
 # The S-067 fixture: five simulator scans, seq 0 to 4, time known from seq 3,
 # 2001 faulted, 1001 out of range, and the digital inputs as bools.
 SIMULATOR_BATCH = decode_message(
@@ -123,7 +125,7 @@ def test_failure_part_way_through_writes_nothing(engine: Engine) -> None:
     # The decoder never returns this; the database refuses it (S-068 check constraint).
     refused = replace(SIMULATOR_BATCH[1], device_id="")
 
-    with pytest.raises(IntegrityError, match="CHECK"):
+    with pytest.raises(IntegrityError, match="(?i)check constraint"):
         store(engine, (SIMULATOR_BATCH[0], refused, GAP, *SIMULATOR_BATCH[2:]))
 
     assert (count(engine, ScanRow), count(engine, ReadingRow), count(engine, GapRow)) == (0, 0, 0)

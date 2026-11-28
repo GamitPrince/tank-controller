@@ -22,6 +22,8 @@ from tankapi.db import AuditRow
 from tankapi.ingest import Accepted, ingest_message
 from tankapi.main import app
 
+pytestmark = pytest.mark.postgres
+
 T = 1_763_683_200
 SIGNAL = 1001
 RANGE = {"signal": SIGNAL, "from": T, "to": T + 60}

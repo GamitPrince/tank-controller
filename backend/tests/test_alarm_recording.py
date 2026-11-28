@@ -25,6 +25,8 @@ from tankapi.db import (
 )
 from tankapi.ingest import Accepted, ingest_message
 
+pytestmark = pytest.mark.postgres
+
 # The server clock a day after the scans: a replayed backlog, judged at its own time.
 NOW = SET + 86_400
 TOPIC = "tank/DEV-A/records"

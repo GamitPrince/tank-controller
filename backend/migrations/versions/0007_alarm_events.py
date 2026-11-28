@@ -14,8 +14,8 @@ time of arrival. An untimed scan has no time, so it can only be
 ``cannot_evaluate`` for ``time_unknown``.
 
 Like 0004, triggers refuse UPDATE and DELETE, and TRUNCATE on Postgres. The
-SQLite triggers are tested; the Postgres function and triggers are only
-rendered as text, untested on a server until the TimescaleDB container story.
+SQLite triggers are tested; the Postgres ones on a local
+server too, when TANKAPI_TEST_DATABASE_URL is set (S-098).
 Downgrade drops the history: never run it on a database whose alarms matter.
 """
 

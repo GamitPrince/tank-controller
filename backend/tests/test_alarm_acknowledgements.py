@@ -5,12 +5,14 @@ TEST DATA ONLY. Every customer, tank, threshold, person and event here is made u
 
 import pytest
 from sqlalchemy import Engine, select, text
-from sqlalchemy.exc import DBAPIError, IntegrityError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 from test_alarm_history import T, event, store
 from test_alarm_thresholds import add, threshold
 
 from tankapi.db import AlarmAcknowledgementRow, CustomerRow, PlantRow, TankRow
+
+pytestmark = pytest.mark.postgres
 
 KEPT = {"alarm_event_id": 1, "subject": "user-1", "role": "operator", "at_unix_ms": 1}
 
@@ -68,6 +70,7 @@ def test_an_acknowledgement_is_never_changed_or_deleted(site: Engine, statement:
     ],
 )
 def test_a_second_or_a_bad_row_is_refused(site: Engine, fields: dict) -> None:
-    with pytest.raises(IntegrityError):
+    # Postgres refuses an over-long note by the column's length, as a DataError.
+    with pytest.raises((IntegrityError, DataError)):
         add(site, AlarmAcknowledgementRow(**KEPT | {"alarm_event_id": 2} | fields))
     assert len(acknowledgements(site)) == 1
