@@ -57,12 +57,14 @@ Simulator pytest through `simulator/ci.sh` (in Git Bash: `PYTHON=python bash scr
 - A rate limit on prompt changes (S-065 leaves it out too).
 - The FRDM dropping the oldest records when its flash log is full (S-041); the simulator's append-only buffer keeps dropping the newest, as before.
 
-## Open questions [Confirm]
+## Open questions (confirmed by the tech lead, 28 Nov 2026)
 
-1. **Default or option.** Recommended, taken in S-096: batches are an option, `--batches PATH`, and the framed single-record `--output` stays as it is. `--replay` reads that stream, and a single message is still valid (S-062). Making batches the default, and the framed stream carry batches, can follow once a consumer needs it.
-2. **How a batch is cut.** Recommended, taken: after five messages; after a live scan that is a prompt change (S-065's rule, the first scan counting as no change); and at the end of a run. A gap record counts as one message and never cuts a batch by itself.
-3. **Outage replay and faults.** Recommended, taken: the backlog drains five to a batch, as S-063's poll does when it finds a full batch; a change inside the backlog does not cut it. In S-097 a gap record follows the buffered records it was dropped after. Fault injection works unchanged: a fault that starts or ends changes a quality, so it cuts a batch.
-4. **Output format.** Recommended, taken in S-096: one batch per line, lowercase hex, LF. It can be diffed and pasted, and matches the backend fixture's hex form (`.gitignore` ignores `*.hex`, so a saved fixture keeps the `.txt` name).
+All four were proposed as `[Confirm]` items and confirmed by the tech lead on 28 Nov 2026 ("mark them as confirmed"), as recommended.
+
+1. **Default or option.** Confirmed (S-096): batches are an option, `--batches PATH`, and the framed single-record `--output` stays as it is. `--replay` reads that stream, and a single message is still valid (S-062). Making batches the default, and the framed stream carry batches, can follow once a consumer needs it.
+2. **How a batch is cut.** Confirmed: after five messages; after a live scan that is a prompt change (S-065's rule, the first scan counting as no change); and at the end of a run. A gap record counts as one message and never cuts a batch by itself.
+3. **Outage replay and faults.** Confirmed: the backlog drains five to a batch, as S-063's poll does when it finds a full batch; a change inside the backlog does not cut it. In S-097 a gap record follows the buffered records it was dropped after. Fault injection works unchanged: a fault that starts or ends changes a quality, so it cuts a batch.
+4. **Output format.** Confirmed (S-096): one batch per line, lowercase hex, LF. It can be diffed and pasted, and matches the backend fixture's hex form (`.gitignore` ignores `*.hex`, so a saved fixture keeps the `.txt` name).
 
 ## PR checklist notes
 
