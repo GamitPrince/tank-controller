@@ -16,7 +16,15 @@ from test_alarm_thresholds import add, threshold
 
 from tankapi import auth, session
 from tankapi.alarm_history import MAX_EVENTS, MAX_RANGE_S
-from tankapi.db import AlarmEventRow, AuditRow, CustomerRow, PlantRow, ScanRow, TankRow
+from tankapi.db import (
+    AlarmAcknowledgementRow,
+    AlarmEventRow,
+    AuditRow,
+    CustomerRow,
+    PlantRow,
+    ScanRow,
+    TankRow,
+)
 from tankapi.main import app
 
 EXAMPLE, SAMPLE = 7, 8
@@ -111,6 +119,7 @@ def test_events_come_newest_first_with_what_was_judged(site, client) -> None:
         "reason": "fault",
         "value": None,
         "quality": "fault",
+        "acknowledged": None,
     }
     assert (data["events"][2]["state"], data["events"][2]["value"]) == ("high", 18_100.0)
     assert data["events"][2]["quality"] == "good"
@@ -205,3 +214,43 @@ def test_no_token_is_refused(client) -> None:
 
 def test_the_route_reads_only(client) -> None:
     assert client.post("/v1/tanks/71/alarms", headers=STAFF).status_code == 405
+
+
+def acknowledgement(event_id: int, note: str | None = None) -> AlarmAcknowledgementRow:
+    return AlarmAcknowledgementRow(
+        alarm_event_id=event_id, subject="user-1", role="maintenance", at_unix_ms=5, note=note
+    )
+
+
+def test_an_acknowledgement_is_shown_on_its_event_only(site, client) -> None:
+    store(site, *event(1, T + 10), *event(2, T + 20, "low"), *event(3, T + 30))
+    add(site, acknowledgement(1, "Seen."), acknowledgement(2))
+    events = history(client, headers=customer(EXAMPLE)).json()["events"]
+
+    assert [item["acknowledged"] for item in events] == [
+        None,
+        {"subject": "user-1", "role": "maintenance", "at": 5, "note": None},
+        {"subject": "user-1", "role": "maintenance", "at": 5, "note": "Seen."},
+    ]
+
+
+def test_an_acknowledgement_stays_shown_after_the_alarm_clears(site, client) -> None:
+    store(site, *event(1, T + 10), *event(2, T + 20, "normal"))
+    add(site, acknowledgement(1))
+    events = history(client).json()["events"]
+    assert [(item["state"], item["acknowledged"] is None) for item in events] == [
+        ("normal", True),
+        ("high", False),
+    ]
+
+
+def test_acknowledgements_change_neither_the_limit_nor_the_counts(site, client) -> None:
+    store(site, *(row for n in range(1, 4) for row in event(n, T + n)))
+    store(site, *event(4, None, "cannot_evaluate"), *event(5, T + 5, threshold_id=2))
+    add(site, *(acknowledgement(n) for n in (1, 2, 3, 5)))
+    data = history(client, limit=2).json()
+    assert ([item["id"] for item in data["events"]], data["more"], data["untimed"]) == (
+        [3, 2],
+        True,
+        1,
+    )
