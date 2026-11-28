@@ -5,11 +5,12 @@ and every such access is recorded; decision 4 makes the record an append-only
 table, ``audit_entries`` (migration 0004 refuses UPDATE and DELETE). Two pieces
 do it. :func:`noting_requests` gives the ``/v1`` router a dependency that runs
 once the token has passed and, for a service caller, keeps who asked, what
-(method, route template, device ID, and the tank ID and query parameters that
-select data) and when. :func:`write_entries`, an HTTP middleware, adds the response status
-and writes the entry after the response is built and before it is sent, so a
-refused request (404, 422, 500) is recorded too. A request refused before the
-caller is known (401, 403, 503) has no service caller to record.
+(method, route template, device ID, and the tank or alarm event ID and query
+parameters that select data) and when. :func:`write_entries`, an HTTP
+middleware, adds the response status and writes the entry after the response
+is built and before it is sent, so a refused request (404, 422, 500) is
+recorded too. A request refused before the caller is known (401, 403, 503) has
+no service caller to record.
 
 Fail closed ``[Confirm]``: when the entry cannot be written, the response is
 dropped and the caller gets 503, so no service read goes unrecorded. Customer
@@ -43,7 +44,7 @@ AUDITED_ROLES = frozenset({Role.SERVICE})
 # The query parameters that choose which data a request reads.
 SELECTING_PARAMETERS = ("signal", "from", "to", "limit")
 # The path parameters, other than the device, that choose which data a request reads.
-SELECTING_PATH_PARAMETERS = ("tank_id",)
+SELECTING_PATH_PARAMETERS = ("tank_id", "event_id")
 DEVICE_PARAMETER = "device_id"
 # A refused request may carry anything, so each recorded value is cut to this.
 VALUE_MAX_CHARS = 64

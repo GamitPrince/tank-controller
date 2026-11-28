@@ -30,7 +30,7 @@ def test_unknown_path_is_not_found(client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_openapi_documents_only_get_paths_and_the_app_version(client: TestClient) -> None:
+def test_openapi_documents_get_paths_one_acknowledgement_and_the_version(client) -> None:
     schema = client.get("/openapi.json").json()
 
     assert schema["info"]["version"] == version("tankapi")
@@ -39,5 +39,9 @@ def test_openapi_documents_only_get_paths_and_the_app_version(client: TestClient
         "/v1/devices/{device_id}/readings",
         "/v1/devices/{device_id}/latest",
         "/v1/tanks/{tank_id}/alarms",
+        "/v1/alarms/{event_id}/acknowledgement",
     }
-    assert all(set(methods) == {"get"} for methods in schema["paths"].values())
+    # The one write is an acknowledgement, a cloud record only (S-092); the rest only read.
+    methods = {path: set(found) for path, found in schema["paths"].items()}
+    assert methods.pop("/v1/alarms/{event_id}/acknowledgement") == {"post"}
+    assert all(found == {"get"} for found in methods.values())
