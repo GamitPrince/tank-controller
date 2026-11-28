@@ -4,10 +4,10 @@ Phase 1 is read-only: the backend receives and serves plant data and never
 sends a command to a device. It serves the health probe (S-066) and, under
 the ``/v1`` prefix, the read-only readings query (S-072) and latest values
 with their liveness (S-084) and a tank's alarm history (S-091), and the one
-write a person makes: acknowledging an alarm, a cloud record only (S-092). Every ``/v1`` route
-sits on one router that checks the caller's token first (S-075) and records
-every service caller's request in the audit trail (S-080); ``/health`` stays
-open.
+write a person makes: acknowledging an alarm, a cloud record only (S-093).
+Every ``/v1`` route sits on one router that checks the caller's token first
+(S-075) and records every service caller's request in the audit trail (S-080);
+``/health`` stays open.
 """
 
 from importlib.metadata import version

@@ -41,7 +41,7 @@ def test_openapi_documents_get_paths_one_acknowledgement_and_the_version(client)
         "/v1/tanks/{tank_id}/alarms",
         "/v1/alarms/{event_id}/acknowledgement",
     }
-    # The one write is an acknowledgement, a cloud record only (S-092); the rest only read.
+    # The one write is an acknowledgement, a cloud record only (S-093); the rest only read.
     methods = {path: set(found) for path, found in schema["paths"].items()}
     assert methods.pop("/v1/alarms/{event_id}/acknowledgement") == {"post"}
     assert all(found == {"get"} for found in methods.values())

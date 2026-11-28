@@ -1,4 +1,4 @@
-"""Acknowledging one raised advisory alarm (S-092, P1-18).
+"""Acknowledging one raised advisory alarm (S-093, P1-18).
 
 ``POST /v1/alarms/{event_id}/acknowledgement`` with ``{"note": <optional text>}``
 adds one ``alarm_acknowledgements`` row: the event, the caller's token ``sub``
