@@ -2,7 +2,7 @@
 
 - Story ID: S-097 (issue #195).
 - Epic: E3 (P1-02, P1-14). Points: 1. Priority: Should. Component: simulator. Review flag: one collaborator other than the author (S-010). Not a safety path.
-- Part 3 of 3, stacked on S-096 (#194). The decisions and the `[Confirm]` items for all three parts are in [`S-095-simulator-batches.md`](S-095-simulator-batches.md).
+- Part 3 of 3, stacked on S-096 (#194). The decisions for all three parts, all confirmed, are in [`S-095-simulator-batches.md`](S-095-simulator-batches.md).
 
 ## Goal
 
@@ -46,9 +46,9 @@ Simulator pytest through `simulator/ci.sh` and the `simulator` CI job. Checked b
 
 The FRDM's drop-oldest behaviour and its gap carry-forward (S-039, S-041); several gap records per outage.
 
-## Open questions [Confirm]
+## Open questions (confirmed by the tech lead, 28 Nov 2026)
 
-1. **The gap record's frame sequence.** The framed `--output` stream gives the gap record the sequence number of the last lost scan, which was never sent, so the next live frame still follows it. Recommended, taken. Batches carry no frame sequence, so they are not affected.
+1. **The gap record's frame sequence.** The framed `--output` stream gives the gap record the sequence number of the last lost scan, which was never sent, so the next live frame still follows it. Confirmed by the tech lead, 28 Nov 2026. Batches carry no frame sequence, so they are not affected.
 
 ## PR checklist notes
 

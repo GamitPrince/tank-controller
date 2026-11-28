@@ -27,7 +27,7 @@ def _lost_scan(record: dict[str, Any]) -> dict[str, Any]:
 def gap_frame(first: bytes, last: bytes, lost: int, schema: Schema | None = None) -> bytes:
     """A framed gap record counting ``lost`` scans from ``first`` to ``last``.
 
-    ``[Confirm]`` The frame reuses the sequence number of the last dropped
+    The frame reuses the sequence number of the last dropped
     scan, which was never sent, so the next live frame still follows it.
     """
     schema = schema or default_schema()
