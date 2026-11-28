@@ -14,7 +14,7 @@ from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 from test_alarm_history import EXAMPLE, SAMPLE, STAFF, T
 from test_level_config import POINTS, RANGE, at, chained, config
-from test_threshold_edit import ADMIN, add, changes, person
+from test_threshold_edit import ADMIN, add, changes, person, seed
 
 from tankapi import auth, level_config_edit, session
 from tankapi.db import AuditRow, CustomerRow, LevelConfigRow, PlantRow, TankRow
@@ -37,7 +37,7 @@ def site(engine: Engine) -> Engine:
     add(engine, *(CustomerRow(id=c, name=f"Customer {c}") for c in (EXAMPLE, SAMPLE)))
     add(engine, *(PlantRow(id=c, customer_id=c, name="Plant A") for c in (EXAMPLE, SAMPLE)))
     add(engine, *(TankRow(id=n, plant_id=n // 10, name="Tank 1") for n in (71, 81)))
-    add(engine, config(1, 71, 1, T - 100))
+    seed(engine, config(1, 71, 1, T - 100))
     add(engine, *chained(1, POINTS))
     return engine
 
@@ -157,7 +157,7 @@ def test_a_second_change_in_one_second_is_refused(site, client) -> None:
 
 
 def test_a_clash_with_a_stored_configuration_is_refused(site, client) -> None:
-    add(site, config(2, 81, 1, NOW, NOW + 5))
+    seed(site, config(2, 81, 1, NOW, NOW + 5))
     add(site, *chained(2, POINTS))
     assert put(client, tank_id=81, headers=STAFF).status_code == 409
     assert len(configs(site)) == 2 and changes(site) == []
