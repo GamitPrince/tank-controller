@@ -84,6 +84,17 @@ class StreamSink:
         self._stream.flush()
 
 
+class FanOutSink:
+    """A sink that hands every delivery to several sinks, in order."""
+
+    def __init__(self, *sinks: Sink) -> None:
+        self._sinks = sinks
+
+    def deliver(self, delivery: Delivery) -> None:
+        for sink in self._sinks:
+            sink.deliver(delivery)
+
+
 class BufferedLink:
     """A link that buffers while it is down and replays when it comes back."""
 
