@@ -16,6 +16,11 @@ An event from a scan whose time was not known has no ``t``, so it cannot be
 placed in a range. It is never stamped with its arrival time: it is left out and
 counted in ``untimed`` ``[Confirm]``.
 
+Each event carries ``acknowledged`` (S-094): ``null``, or who acknowledged it
+(the token's ``sub`` and role), when (server time, Unix milliseconds) and the
+note, from S-092's table. It stays shown after the alarm clears, and it never
+changes the alarm's state.
+
 Scoping follows S-078 for a tank: a service caller sees every tank, and any
 other caller only the tanks of their own customer. Another customer's tank
 answers exactly as an unknown one does, so IDs cannot be probed. A tank's
@@ -33,7 +38,13 @@ from sqlalchemy.orm import Session
 
 from tankapi.alarm_rules import AlarmClass, AlarmState, Direction, Measure, Unavailable
 from tankapi.auth import Caller, Role, require_caller
-from tankapi.db import AlarmEventRow, AlarmThresholdRow, PlantRow, TankRow
+from tankapi.db import (
+    AlarmAcknowledgementRow,
+    AlarmEventRow,
+    AlarmThresholdRow,
+    PlantRow,
+    TankRow,
+)
 from tankapi.readings import HTTP_NOT_FOUND, HTTP_UNPROCESSABLE, NOT_FOUND, QualityName
 from tankapi.records import Quality
 from tankapi.session import get_session
@@ -41,6 +52,15 @@ from tankapi.session import get_session
 # Thirty-one days per request: a month's alarm list in one call. [Confirm]
 MAX_RANGE_S = 31 * 86_400
 MAX_EVENTS = 1000
+
+
+class Acknowledged(BaseModel):
+    """Who acknowledged an event and when; ``at`` is the server's Unix time in ms."""
+
+    subject: str
+    role: Role
+    at: int
+    note: str | None
 
 
 class AlarmEvent(BaseModel):
@@ -59,6 +79,7 @@ class AlarmEvent(BaseModel):
     reason: Unavailable | None
     value: float | None
     quality: QualityName | None
+    acknowledged: Acknowledged | None
 
 
 class AlarmHistory(BaseModel):
@@ -94,6 +115,10 @@ def get_alarm_history(
     t = AlarmEventRow.unix_time_s
     query = (
         _tank_events(tank_id)
+        .add_columns(AlarmAcknowledgementRow)
+        .outerjoin(
+            AlarmAcknowledgementRow, AlarmAcknowledgementRow.alarm_event_id == AlarmEventRow.id
+        )
         .where(t >= start, t < end)
         .order_by(t.desc(), AlarmEventRow.id.desc())
         .limit(limit + 1)
@@ -104,7 +129,7 @@ def get_alarm_history(
         tank_id=tank_id,
         start=start,
         end=end,
-        events=[_event(event, threshold) for event, threshold in rows[:limit]],
+        events=[_event(*row) for row in rows[:limit]],
         more=len(rows) > limit,
         untimed=session.scalar(untimed),
     )
@@ -127,7 +152,11 @@ def _tank_events(tank_id: int) -> Select:
     )
 
 
-def _event(event: AlarmEventRow, threshold: AlarmThresholdRow) -> AlarmEvent:
+def _event(
+    event: AlarmEventRow,
+    threshold: AlarmThresholdRow,
+    acknowledgement: AlarmAcknowledgementRow | None,
+) -> AlarmEvent:
     quality = None if event.quality is None else Quality(event.quality).name.lower()
     return AlarmEvent(
         id=event.id,
@@ -143,4 +172,11 @@ def _event(event: AlarmEventRow, threshold: AlarmThresholdRow) -> AlarmEvent:
         reason=event.reason,
         value=event.value,
         quality=quality,
+        acknowledged=_acknowledged(acknowledgement),
     )
+
+
+def _acknowledged(row: AlarmAcknowledgementRow | None) -> Acknowledged | None:
+    if row is None:
+        return None
+    return Acknowledged(subject=row.subject, role=row.role, at=row.at_unix_ms, note=row.note)
