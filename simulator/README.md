@@ -26,6 +26,7 @@ Useful flags:
 | Flag | What it does |
 | --- | --- |
 | `--output capture.bin` | write the framed byte stream a consumer actually reads |
+| `--batches batches.txt` | write batch messages, one per line as hex: what the ESP32 publishes (S-095) |
 | `--scans N --interval-ms M` | how many scans, and the simulated gap between them |
 | `--sntp-sync-after-ms N` | boot without a known wall clock, as a real device does |
 | `--fault 2001:sensor_fault` | inject a sensor fault (also `out_of_range`, `stale`) |
@@ -73,6 +74,32 @@ needs no broker, no certificates and no cloud account — ADR-0007's three gates
 have not been passed, so nothing here may open one — and an MQTT publisher is a
 thin wrapper over the same frames, which belongs with the cloud stories (P1-14,
 P1-15).
+
+## Batch messages
+
+A device does not publish one record at a time. The FRDM packs up to five
+complete records, oldest first, into one link frame, and the ESP32 publishes
+that frame unchanged as one MQTT message on `tank/{device_id}/records`
+(S-062 to S-064). `--batches PATH` writes those messages, one per line as
+lowercase hex of the CBOR array: exactly the payload the backend decodes
+(S-067). Nothing is published to a broker or any network.
+
+A batch is closed:
+
+- after five messages, the steady state, one batch every 5 s;
+- at once after a live scan that changes, against the scan before it, any
+  reading's quality or value presence, or any digital contact's value (S-065),
+  so an alarm or a sensor fault does not wait behind the timer;
+- at the end of a run, as a shorter last batch.
+
+After an outage the backlog drains oldest first, five to a batch, with its
+original timestamps, and a change inside the backlog does not cut it. Every
+batch is checked against the schema's `batch` rule before it is written. `--replay capture.bin --batches batches.txt` regroups an earlier
+capture the same way.
+
+```sh
+python -m tanksim --scans 20 --link-drop 5-12 --batches batches.txt
+```
 
 ## Outage replay with the original timestamps
 
