@@ -14,6 +14,9 @@ overwritten and never an error.
   different gaps cannot agree in all of them; a gap carried forward keeps its
   ``first`` mark but not its ``last`` or ``lost``, so it is stored.
 
+A new scan whose time is known also gets its per-second samples (S-100), in the
+same transaction, so a skipped duplicate never adds samples twice.
+
 Exactly what was decoded is stored: the device's own uptime and time, never the
 time of arrival, and a faulted reading without a value. Nothing is added
 between records; a gap stays a gap (S-040).
@@ -27,7 +30,7 @@ from dataclasses import dataclass
 from sqlalchemy import ColumnElement, select
 from sqlalchemy.orm import Session
 
-from tankapi.db import GapRow, ScanRow
+from tankapi.db import GapRow, SampleRow, ScanRow
 from tankapi.records import GapRecord, Message, ScanRecord
 
 NewScans = Callable[[Session, Sequence[ScanRow]], object]
@@ -72,7 +75,9 @@ def store_message(
 
 def _row(record: Message) -> ScanRow | GapRow:
     if isinstance(record, ScanRecord):
-        return ScanRow.from_record(record)
+        row = ScanRow.from_record(record)
+        row.samples = SampleRow.for_scan(record)
+        return row
     return GapRow.from_record(record)
 
 

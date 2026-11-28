@@ -12,7 +12,7 @@ from tankapi.db import Base
 
 pytestmark = pytest.mark.postgres
 
-TABLES = {"scan_records", "readings", "gap_records"} | {
+TABLES = {"scan_records", "readings", "gap_records", "reading_samples"} | {
     "customers",
     "plants",
     "tanks",

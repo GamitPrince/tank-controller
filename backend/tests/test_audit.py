@@ -135,9 +135,11 @@ def test_no_entry_holds_the_token_a_header_or_another_parameter(client, engine) 
 def test_a_service_request_whose_entry_cannot_be_written_is_refused(
     serve, database_url, caplog
 ) -> None:
-    command.upgrade(alembic_config(database_url), "0003")  # no audit table to write to
+    command.upgrade(alembic_config(database_url), "head")
     engine = create_engine(database_url)
     store_scan(engine)
+    with engine.begin() as db:
+        db.execute(text("DROP TABLE audit_entries"))  # no audit table to write to
     caplog.set_level(logging.ERROR, logger="tankapi.audit")
 
     response = read(serve(engine))

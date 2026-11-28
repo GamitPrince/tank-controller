@@ -16,6 +16,7 @@ TEST_DATABASE_URL_VARIABLE = "TANKAPI_TEST_DATABASE_URL"
 # Created for each Postgres test and dropped after it; never a database that already exists.
 TEST_DATABASE = "tankai_test"
 SQLITE, POSTGRES = "sqlite", "postgresql"
+TELEMETRY_OFF = "timescaledb.telemetry_level = 'off'"
 TERMINATE_OWN_CONNECTIONS = (
     "SELECT pg_terminate_backend(pid) FROM pg_stat_activity"
     " WHERE datname = :database AND usename = current_user AND pid <> pg_backend_pid()"
@@ -64,6 +65,8 @@ def _throwaway_postgres_database() -> Iterator[str]:
     with server.connect() as connection:
         # Fails if it exists, so a database left by someone else is never used or dropped.
         connection.execute(text(f"CREATE DATABASE {TEST_DATABASE}"))
+        # S-100: TimescaleDB reports to its vendor by default; nothing leaves this machine.
+        connection.execute(text(f"ALTER DATABASE {TEST_DATABASE} SET {TELEMETRY_OFF}"))
     try:
         url = make_url(server_url).set(database=TEST_DATABASE)
         yield url.render_as_string(hide_password=False)
