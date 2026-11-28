@@ -13,6 +13,8 @@ from tankapi.alarm_rules import AlarmClass, Direction, Measure, Threshold
 from tankapi.db import AlarmEventRow, AlarmThresholdRow, CustomerRow, PlantRow, ScanRow, TankRow
 from tankapi.thresholds import ThresholdError, ThresholdInForce, thresholds_at
 
+pytestmark = pytest.mark.postgres
+
 RAISED = {"state": "high", "value": 18_100.0, "quality": 0}
 _UNTIMED = ("cannot_evaluate", "time_unknown", None)
 
@@ -119,7 +121,7 @@ def test_an_event_needs_its_threshold_scan_and_limit(site: Engine, fields: dict)
 
 def test_one_scan_is_judged_once_against_one_threshold(site: Engine) -> None:
     add(site, event())
-    with pytest.raises(IntegrityError, match="UNIQUE"):
+    with pytest.raises(IntegrityError, match="(?i)unique constraint"):
         add(site, event(state="normal"))
 
 

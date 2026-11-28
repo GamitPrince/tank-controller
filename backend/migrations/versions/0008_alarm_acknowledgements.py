@@ -11,8 +11,8 @@ table. The unique key on the event means an event is acknowledged at most once.
 Nothing here clears, silences or changes how an alarm is judged.
 
 Like 0004 and 0007, triggers refuse UPDATE and DELETE, and TRUNCATE on Postgres.
-The SQLite triggers are tested; the Postgres function and triggers are only
-rendered as text, untested on a server until the TimescaleDB container story.
+The SQLite triggers are tested; the Postgres ones on a local
+server too, when TANKAPI_TEST_DATABASE_URL is set (S-098).
 Downgrade drops the acknowledgements: never run it on a database whose alarms matter.
 """
 

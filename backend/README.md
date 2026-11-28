@@ -28,6 +28,26 @@ Ubuntu:
 bash scripts/ci/run-component.sh backend
 ```
 
+### Also on PostgreSQL (S-098)
+
+Tests marked `postgres` (the migrations, the stored records, ingest, the audit trail and the alarm tables) run on SQLite and also on a PostgreSQL server when `TANKAPI_TEST_DATABASE_URL` is set; without it their Postgres runs are skipped, which is how CI runs today. `tests/test_postgres.py` adds what only a server shows: TRUNCATE refused on the three append-only tables, and the backend role's rights. Each Postgres test creates a database named `tankai_test`, migrates it and drops it afterwards. If a database of that name already exists the test fails instead of using or dropping it. Tests cannot run in parallel against one server.
+
+One-time setup, done by hand by the database administrator as `postgres` (choose the password yourself; it is never written in the repository or in chat):
+
+```sql
+CREATE ROLE tankai_dev LOGIN CREATEDB PASSWORD '<choose one>';
+CREATE ROLE tankapi_backend NOLOGIN;
+GRANT tankapi_backend TO tankai_dev;
+```
+
+Put the password in libpq's password file, `%APPDATA%\postgresql\pgpass.conf` on Windows or `~/.pgpass` (mode 0600) on Ubuntu, as one line: `localhost:5432:*:tankai_dev:<the same password>`. Then run the tests with a URL that carries no password:
+
+```bash
+TANKAPI_TEST_DATABASE_URL="postgresql+psycopg://tankai_dev@localhost:5432/postgres" PYTHON=python bash scripts/ci/run-component.sh backend
+```
+
+The backend role may only add and read audit entries. `sql/backend-role-grants.sql` gives it that: SELECT and INSERT on `audit_entries` and use of its sequence, and nothing else. Run it as the table owner after `alembic upgrade head`; the tests run it the same way. The role does not own the table, so it cannot drop the append-only triggers. TimescaleDB is not used yet.
+
 ## Run the app
 
 After the tests have created the venv, from `backend/`:

@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from tankapi.db import GapRow, ReadingRow, ScanRow
 from tankapi.ingest import Accepted, IngestResult, Refused, device_from_topic, ingest_message
 
+pytestmark = pytest.mark.postgres
+
 # The S-067 fixture: five simulator scans from device SIM-0001, seq 0 to 4.
 PAYLOAD = bytes.fromhex(
     (Path(__file__).parent / "fixtures" / "simulator-batch-cbor-hex.txt").read_text()
