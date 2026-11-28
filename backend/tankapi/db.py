@@ -29,7 +29,8 @@ configuration with its history (S-085); ``tankapi.level_config`` reads them (S-0
 ``alarm_thresholds`` holds each tank's advisory alarm limits with their history
 (S-087); ``tankapi.thresholds`` reads them. ``alarm_events`` is the append-only
 history of raised and cleared alarms (S-089): like ``audit_entries``, its
-migration's triggers refuse UPDATE and DELETE.
+migration's triggers refuse UPDATE and DELETE. ``alarm_acknowledgements``
+(S-092) records who acknowledged a raised event, once, and is append-only too.
 
 Only the mapping lives here. Writing records, de-duplication and ingest are
 later stories.
@@ -86,6 +87,7 @@ SUBJECT_MAX_CHARS = 128
 ROLE_MAX_CHARS = 16
 METHOD_MAX_CHARS = 8
 ROUTE_MAX_CHARS = 200
+NOTE_MAX_CHARS = 200
 # An assignment with no end is the device's current one; a device has at most one.
 OPEN_ASSIGNMENT = text("valid_to_unix_s IS NULL")
 # Likewise a tank has at most one current level configuration (S-085).
@@ -393,6 +395,20 @@ class AlarmEventRow(Base):
     quality: Mapped[int | None] = mapped_column(SmallInteger)
     limit_value: Mapped[int] = mapped_column(BigInteger)
     deadband: Mapped[int] = mapped_column(BigInteger)
+
+
+class AlarmAcknowledgementRow(Base):
+    """One person's acknowledgement of one raised alarm event, at the server's time. At
+    most one per event; never updated (S-092)."""
+
+    __tablename__ = "alarm_acknowledgements"
+
+    id: Mapped[int] = mapped_column(ROW_ID, primary_key=True)
+    alarm_event_id: Mapped[int] = mapped_column(ForeignKey("alarm_events.id"), unique=True)
+    subject: Mapped[str] = mapped_column(String(SUBJECT_MAX_CHARS))
+    role: Mapped[str] = mapped_column(String(ROLE_MAX_CHARS))
+    at_unix_ms: Mapped[int] = mapped_column(BigInteger)
+    note: Mapped[str | None] = mapped_column(String(NOTE_MAX_CHARS))
 
 
 class AuditRow(Base):
