@@ -15,24 +15,30 @@ on, it needs no broker, no certificates and no cloud account, and ADR-0007's
 three gates have not been passed, so nothing here may open one. An MQTT
 publisher is a thin wrapper over the same frames and belongs with the cloud
 stories (P1-14, P1-15).
-"""
+
+``--batches`` writes what that publisher would send (S-095): one batch message
+per line, as hex of the CBOR array, five records to a batch and sooner when a
+contact or a quality changes (S-062 to S-065). It is the payload the backend
+decodes (S-067); nothing is published to any network.\n"""
 
 from __future__ import annotations
 
 import argparse
 import sys
+from contextlib import ExitStack
 from pathlib import Path
-from typing import BinaryIO, TextIO
+from typing import TextIO
 
-from .cddl import load_schema
+from .batch import Batch, BatchSink, contact_ids
+from .cddl import Schema, load_schema
 from .clock import SimClock
 from .device import ScanResult, SimulatedDevice
 from .faults import FaultPlan, load_scenario, parse_link_drop, parse_signal_fault
-from .link import BufferedLink, RecordingSink, StreamSink
+from .link import BufferedLink, FanOutSink, RecordingSink, Sink, StreamSink
 from .plant import PlantModel
 from .record import Quality
 from .replay import load_capture, replay
-from .signals import load_signal_list
+from .signals import SignalList, load_signal_list
 
 #: Defaults chosen so the bare command does something useful and finishes.
 DEFAULT_DEVICE_ID = "SIM-0001"
@@ -82,6 +88,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="write the framed byte stream to this file as well as summarising it",
+    )
+    parser.add_argument(
+        "--batches",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="also write batch messages to this file, one per line as hex (the MQTT payload)",
     )
     parser.add_argument(
         "--fault",
@@ -149,14 +162,64 @@ def _summarise(
             )
 
 
+class _BatchFile:
+    """Writes each batch as one line of hex and keeps a count for the summary."""
+
+    def __init__(self, stream: TextIO) -> None:
+        self._stream = stream
+        self.batches: list[Batch] = []
+
+    def write(self, batch: Batch) -> None:
+        self._stream.write(batch.payload.hex() + "\n")
+        self.batches.append(batch)
+
+
+def _open_batches(
+    args: argparse.Namespace, stack: ExitStack, schema: Schema, signal_list: SignalList | None
+) -> tuple[BatchSink | None, _BatchFile | None]:
+    if args.batches is None:
+        return None, None
+    batch_file = _BatchFile(stack.enter_context(args.batches.open("w", newline="\n")))
+    signals = signal_list or load_signal_list(args.signals)
+    batch_sink = BatchSink(batch_file.write, contact_ids(signals), schema)
+    stack.callback(batch_sink.close)
+    return batch_sink, batch_file
+
+
+def _summarise_batches(batch_file: _BatchFile | None, path: Path | None, out: TextIO) -> None:
+    if batch_file is None:
+        return
+    for index, batch in enumerate(batch_file.batches):
+        out.write(f"batch {index}: {batch.count} message(s), cut by {batch.cut}\n")
+    out.write(f"wrote {len(batch_file.batches)} batch message(s) to {path}\n")
+
+
 def _run_replay(args: argparse.Namespace, out: TextIO) -> int:
-    captured = load_capture(args.replay, load_schema())
+    schema = load_schema()
+    captured = load_capture(args.replay, schema)
     sink = RecordingSink()
-    count = replay(captured, sink)
+    with ExitStack() as stack:
+        batch_sink, batch_file = _open_batches(args, stack, schema, None)
+        count = replay(captured, FanOutSink(sink, batch_sink) if batch_sink else sink)
     out.write(f"replayed {count} record(s) from {args.replay}, timestamps unchanged\n")
     for delivery in sink.deliveries:
         out.write(f"    up={delivery.uptime_ms}ms t={delivery.unix_time_s}\n")
+    _summarise_batches(batch_file, args.batches, out)
     return 0
+
+
+def _build_device(args: argparse.Namespace, signal_list: SignalList, schema: Schema, sink: Sink):
+    link = BufferedLink(sink)
+    device = SimulatedDevice(
+        device_id=args.device_id,
+        signal_list=signal_list,
+        link=link,
+        clock=SimClock(boot_unix_s=args.boot_unix_s, sntp_sync_after_ms=args.sntp_sync_after_ms),
+        plant=PlantModel(signal_list),
+        fault_plan=_plan_from(args),
+        schema=schema,
+    )
+    return device, link
 
 
 def main(argv: list[str] | None = None, out: TextIO | None = None) -> int:
@@ -169,27 +232,14 @@ def main(argv: list[str] | None = None, out: TextIO | None = None) -> int:
 
     signal_list = load_signal_list(args.signals)
     schema = load_schema()
-    plan = _plan_from(args)
 
-    output_file: BinaryIO | None = None
-    try:
+    with ExitStack() as stack:
+        sink: Sink = RecordingSink()
         if args.output is not None:
-            output_file = args.output.open("wb")
-            sink = StreamSink(output_file)
-        else:
-            sink = RecordingSink()
-
-        link = BufferedLink(sink)
-        device = SimulatedDevice(
-            device_id=args.device_id,
-            signal_list=signal_list,
-            link=link,
-            clock=SimClock(
-                boot_unix_s=args.boot_unix_s, sntp_sync_after_ms=args.sntp_sync_after_ms
-            ),
-            plant=PlantModel(signal_list),
-            fault_plan=plan,
-            schema=schema,
+            sink = StreamSink(stack.enter_context(args.output.open("wb")))
+        batch_sink, batch_file = _open_batches(args, stack, schema, signal_list)
+        device, link = _build_device(
+            args, signal_list, schema, FanOutSink(sink, batch_sink) if batch_sink else sink
         )
         out.write(
             f"tanksim: device {device.device_id}, signal list v{signal_list.version} "
@@ -197,14 +247,12 @@ def main(argv: list[str] | None = None, out: TextIO | None = None) -> int:
             f"safety-chain or alarm status inputs), read-only\n"
         )
         results = device.run(args.scans, args.interval_ms)
-        _summarise(results, Quality(schema), out, {s.id: s.name for s in signal_list})
-        if link.buffered:
-            out.write(f"{link.buffered} record(s) still held in the outage buffer\n")
-        if args.output is not None:
-            out.write(f"wrote the framed stream to {args.output}\n")
-    finally:
-        if output_file is not None:
-            output_file.close()
+    _summarise(results, Quality(schema), out, {s.id: s.name for s in signal_list})
+    if link.buffered:
+        out.write(f"{link.buffered} record(s) still held in the outage buffer\n")
+    if args.output is not None:
+        out.write(f"wrote the framed stream to {args.output}\n")
+    _summarise_batches(batch_file, args.batches, out)
     return 0
 
 
