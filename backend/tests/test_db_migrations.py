@@ -24,6 +24,7 @@ TABLES = {"scan_records", "readings", "gap_records", "reading_samples"} | {
     "alarm_thresholds",
     "alarm_events",
     "alarm_acknowledgements",
+    "config_changes",
 }
 
 
@@ -88,6 +89,7 @@ def test_migration_renders_postgres_sql_offline() -> None:
     assert "RAISE EXCEPTION 'alarm_acknowledgements is append-only'" in sql
     assert "BEFORE UPDATE OR DELETE ON alarm_acknowledgements FOR EACH ROW" in sql
     assert "CONSTRAINT uq_alarm_acknowledgements_alarm_event_id UNIQUE (alarm_event_id)" in sql
+    assert "BEFORE UPDATE OR DELETE ON config_changes FOR EACH ROW" in sql
     assert "CHECK (unix_time_s IS NOT NULL OR COALESCE(reason IN ('time_unknown'), FALSE))" in sql
 
 
@@ -97,6 +99,7 @@ def test_migration_renders_postgres_sql_offline() -> None:
         ("0004:0003", "audit_entries"),
         ("0007:0006", "alarm_events"),
         ("0008:0007", "alarm_acknowledgements"),
+        ("0010:0009", "config_changes"),
     ],
 )
 def test_postgres_downgrade_drops_the_append_only_function_offline(
