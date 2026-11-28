@@ -54,10 +54,10 @@ pytest locally on Windows (Git Bash), twice: once without the variable, once wit
 The backend's deployment login and its password; a Postgres service in GitHub CI; an endpoint that reads `reading_minutes` (its story grants SELECT on it); the claim flow (its story grants INSERT on the ownership tables); trimming `readings` after 90 days (its story would grant DELETE there and only there); the S3 audit copy; Cognito; Docker.
 
 ## Open questions [Confirm]
-1. **Keep the grants a hand-run SQL script, not a migration** (recommended, taken). The role name and its existence belong to each deployment and to the administrator; a migration would tie every database, SQLite included, to it. The script is idempotent and is rerun after every migration; the deployment story runs it from the pipeline. No password either way.
-2. **No default privileges for future tables** (recommended, taken). `ALTER DEFAULT PRIVILEGES` would hand a new table's rights to the role before anyone decided them, which is the gap this story closes. Each new table gets an explicit line in the script.
-3. **A guard test that fails when a new table has no grant decision** (recommended, taken). It runs in CI on SQLite against the models, and on Postgres against the whole catalogue, so a table made only on Postgres (`reading_minutes`) is covered too.
-4. **`reading_minutes` gets no grant yet** (recommended, taken): no code reads it; the story that adds its endpoint grants SELECT.
+1. **Keep the grants a hand-run SQL script, not a migration** (recommended, taken; confirmed by the tech lead, 28 Nov 2026). The role name and its existence belong to each deployment and to the administrator; a migration would tie every database, SQLite included, to it. The script is idempotent and is rerun after every migration; the deployment story runs it from the pipeline. No password either way.
+2. **No default privileges for future tables** (recommended, taken; confirmed by the tech lead, 28 Nov 2026). `ALTER DEFAULT PRIVILEGES` would hand a new table's rights to the role before anyone decided them, which is the gap this story closes. Each new table gets an explicit line in the script.
+3. **A guard test that fails when a new table has no grant decision** (recommended, taken; confirmed by the tech lead, 28 Nov 2026). It runs in CI on SQLite against the models, and on Postgres against the whole catalogue, so a table made only on Postgres (`reading_minutes`) is covered too.
+4. **`reading_minutes` gets no grant yet** (recommended, taken; confirmed by the tech lead, 28 Nov 2026): no code reads it; the story that adds its endpoint grants SELECT.
 
 ## PR checklist notes
 Title `feat(dashboard): grant the restricted backend role on every table (S-104)`, branch `feature/S-104-backend-role-grants`. The `dashboard` scope follows S-066's [Confirm] 1. No `safety` label. No migration, no dependency.
