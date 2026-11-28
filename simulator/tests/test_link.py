@@ -6,7 +6,7 @@ import io
 
 import pytest
 
-from tanksim.link import BufferedLink, Delivery, LinkError, RecordingSink, StreamSink
+from tanksim.link import BufferedLink, Delivery, FanOutSink, LinkError, RecordingSink, StreamSink
 
 
 def test_a_frame_goes_straight_out_while_the_link_is_up(sink):
@@ -97,3 +97,9 @@ def test_a_recording_sink_keeps_every_delivery():
     sink = RecordingSink()
     sink.deliver(Delivery(frame=b"x", uptime_ms=1, unix_time_s=None))
     assert len(sink.deliveries) == 1
+
+
+def test_a_fan_out_sink_hands_each_delivery_to_every_sink():
+    first, second = RecordingSink(), RecordingSink()
+    FanOutSink(first, second).deliver(Delivery(frame=b"x", uptime_ms=0, unix_time_s=None))
+    assert first.frames == second.frames == [b"x"]
